@@ -13,4 +13,5 @@ Runs in the main conversation, so it can delegate to the crew at full depth. In 
    baseline, bumps every environment, sweeps deprecations, and keeps
    `.claude/state/UPGRADE_PLAN.md` current.
 3. Run `parity-gate` (old vs new runtime); then `release-devops` if CI/Docker still need
-   aligning. Prefer an isolated git worktree.
+   aligning. Best started inside a worktree session (`claude --worktree <name>`) so the upgrade stays off the
+   main working tree.

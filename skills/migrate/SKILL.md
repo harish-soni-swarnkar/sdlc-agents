@@ -12,4 +12,5 @@ Runs in the main conversation, so it can delegate to the crew at full depth. In 
 2. Run `migrate-stack`. It captures the golden baseline (qa-test-engineer), designs the target,
    ports slice by slice, and keeps `.claude/state/MIGRATION_STATE.md` current.
 3. Run `parity-gate` — cutover needs PARITY-HELD. Then `review-gate` on the target.
-4. Ask before cutover or decommissioning the source. Prefer an isolated git worktree.
+4. Ask before cutover or decommissioning the source. Best started inside
+   a worktree session (`claude --worktree <name>`) so the port stays off the main working tree.

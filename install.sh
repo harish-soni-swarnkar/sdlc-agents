@@ -30,12 +30,12 @@ echo "Done — $count agent(s) installed to $DEST"
 [ -f "$SRC/README.md" ] && cp "$SRC/README.md" "$DEST/README.md" && echo "installed README.md -> $DEST"
 
 # Global rules: install only if the user doesn't already have one.
-if [ -f "$SRC/CLAUDE.md" ]; then
+if [ -f "$SRC/global/CLAUDE.md" ]; then
   if [ -f "$HOME/.claude/CLAUDE.md" ]; then
     echo "Note: ~/.claude/CLAUDE.md already exists — left it untouched."
-    echo "      Compare with $SRC/CLAUDE.md and merge by hand if you want the global rules."
+    echo "      Compare with $SRC/global/CLAUDE.md and merge by hand if you want the global rules."
   else
-    cp "$SRC/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+    cp "$SRC/global/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
     echo "Installed global engineering rules to ~/.claude/CLAUDE.md"
   fi
 fi

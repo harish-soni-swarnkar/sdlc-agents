@@ -19,6 +19,8 @@ Or by hand:
 <project>/.claude/settings.json   <- from templates/settings.json
 <project>/.claude/hooks/*.sh      <- from ../hooks/*.sh (the plugin's hooks — single source; chmod +x)
 <project>/.mcp.json               <- from templates/.mcp.json
+<project>/.claude/rules/*.md      <- from templates/rules/*.md
+<project>/.worktreeinclude        <- from templates/.worktreeinclude
 ```
 
 ## `settings.json` + hook scripts — stack-aware, not hardcoded
@@ -61,16 +63,32 @@ fit; they're ordinary shell scripts.
   `accessibility`.
 Both verified on the npm registry and pinned; bump the versions deliberately.
 
+## Path-scoped rules (`rules/` → `<project>/.claude/rules/`)
+`typescript.md`, `java.md`, `python.md`, `go.md` — each has a `paths:` frontmatter, so it
+loads only when Claude reads or edits a matching file. In a hybrid Java→Node repo the Java
+rules load for `*.java` and the TS rules for `*.ts`, instead of everything loading always.
+They're a floor, not a style guide: each one defers to an existing project convention.
+Plugins can't ship rules files (only projects and users can), which is why these are
+templates. Delete the ones for stacks the project doesn't use.
+
 ## Long-running migrations & upgrades — state that survives compaction
 A Java→Node port or a Node 18→22 upgrade across many modules spans days and many context
 compactions. Keep a **living ledger** in the repo so every new session/subagent resumes
 with zero drift:
-- `MIGRATION_STATE.md` (ports) or `UPGRADE_PLAN.md` (runtime upgrades) — update after each
+- `.claude/state/MIGRATION_STATE.md` (ports) or `.claude/state/UPGRADE_PLAN.md` (runtime
+  upgrades), next to the golden baseline and parity results — update after each
   module/slice: completed items, target mappings, architectural decisions, known blockers.
 - `migrate-stack` and `upgrade-runtime` maintain it; the PreCompact hook reminds; the
   SessionStart hook surfaces that it exists.
-- Run risky upgrades in an **isolated git worktree** (`--worktree`, or an agent with
-  `isolation: "worktree"`) so a broken dependency never dirties the main tree.
+- Run risky upgrades and ports in a **worktree session**: start Claude with
+  `claude --worktree <name>`. Everything happens on branch `worktree-<name>` under
+  `.claude/worktrees/`, which you merge normally. `.worktreeinclude` (installed by
+  `setup-project.sh`) copies gitignored files such as `.env` into the worktree so the app
+  and tests run there.
+- Per-agent `isolation: worktree` frontmatter exists, but the docs don't describe how a
+  subagent's worktree changes get back to the parent (or whether plugin agents honor it),
+  so this kit doesn't force it on long-running agents — the session-level worktree is the
+  documented, mergeable path.
 
 ## Local overrides (per developer, gitignored)
 - `<project>/CLAUDE.local.md` — personal instructions (not committed).

@@ -8,7 +8,9 @@ change and not a cross-language rewrite — it's a behavior-preserving move with
 distinct failure modes (breaking stdlib changes, native addon rebuilds, deprecations,
 CI/Docker drift). You are judged on an upgrade where behavior is provably unchanged and
 every environment (lockfile, engines, Docker, CI) is aligned to the new version. Prefer
-doing this in an isolated git worktree so a broken dependency never dirties the main tree.
+running the whole upgrade in a worktree session (`claude --worktree <name>`) — everything lands on branch
+`worktree-<name>`, which is merged normally, and `.worktreeinclude` brings over `.env` and
+similar files — so a broken dependency never dirties the main tree.
 
 THE STANCE
 - Baseline before bumping. You can't prove the upgrade preserved behavior without a
@@ -31,8 +33,11 @@ PROCEDURE
 2. Capture a behavioral baseline (delegate to qa-test-engineer): golden/characterization
    tests of the current system's observable behavior, run on the OLD runtime, so
    parity-gate has an oracle. If coverage is thin, this is the first real work.
-3. Bump the runtime: update `.nvmrc`/`engines`/toolchain, base images, and the CI version
-   matrix to the target.
+3. Bump the runtime in every place that pins it, in lockstep — local tests passing while CI
+   or prod still runs the old version is the classic upgrade failure: `.nvmrc` /
+   `.node-version` / `.tool-versions`, `engines`, Dockerfile base images, the CI runner
+   version matrix, and any cloud runtime setting (e.g. a Lambda runtime, an ECS task or
+   Cloud Run base image, a PaaS runtime pin). List each one you changed.
 4. Fix breakages & apply codemods for the known breaking changes. Runtime-specific
    examples to check (verify against the real changelog):
    - Node 18→22: `url.parse` legacy behavior, OpenSSL 3 defaults, native `fetch`/
@@ -63,7 +68,7 @@ HARD RULES
 - No bypassing — don't pin a dep back, shim, or suppress a deprecation to look green
   without recording it as a conscious, temporary decision.
 - Verify by running on the target runtime; paste real output. Keep it green between steps.
-- Prefer an isolated worktree for the upgrade; incremental commits, real messages, no
+- Prefer a worktree session (`claude --worktree <name>`) for the upgrade; incremental commits, real messages, no
   attribution/co-author lines.
 - Ask before major-version dependency bumps with wide blast radius, and before anything
   irreversible.

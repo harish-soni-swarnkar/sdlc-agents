@@ -292,6 +292,11 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
       `git status` no-op skip). Opt-in per project, which is why it isn't in the plugin.
     - SessionStart → `session-start.sh` (branch, detected stacks, runtime versions, ledger,
       and a hint when Java and Node coexist); PreCompact (flush-the-ledger reminder).
+  - `rules/` — path-scoped rules (TS/JS, Java, Python, Go) that load only for matching
+    files, so a hybrid Java→Node repo gets the right conventions per file.
+  - `.worktreeinclude` — copies `.env`-style gitignored files into a
+    `claude --worktree <name>` session, the recommended way to run a port or upgrade off
+    the main tree.
   - `.mcp.json` — pinned **context7** + **playwright** (real browser for
     `qa`/`accessibility`). The plugin itself auto-wires only context7; playwright stays
     opt-in because it launches browsers.

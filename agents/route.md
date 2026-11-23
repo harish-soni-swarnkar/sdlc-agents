@@ -18,7 +18,17 @@ PROCEDURE
    graded exercise?), ask one crisp question before laying out the plan.
 3. Pick the workflow: the minimal set of agents, in order. Prefer a single orchestrator
    when one already encapsulates the flow (don't hand-chain what ship-it/migrate-stack/
-   fix-loop already do).
+   fix-loop already do). Size the gating to the risk — don't run four gates on a typo:
+   - **Fast path** — small, contained change (roughly one file / a few dozen lines) that
+     touches no auth, secrets, money, data schema, public API, or infra: the one doing
+     agent + `pr-ready`.
+   - **Standard** — a normal feature or fix across several files: the doing agent +
+     `review-gate`.
+   - **Full pipeline** — anything touching auth/security, data or migrations, a public API
+     contract, infra/CI, a runtime upgrade or stack port, or a release: the orchestrator
+     plus the gates that apply (`design-gate` before building, `parity-gate` for
+     upgrades/ports, `production-gate` before release).
+   State which tier you picked and why; when unsure between two tiers, pick the higher.
 4. Present the workflow (format below).
 5. Offer to run it: "Say go and the main session will run this sequence; or take any step
    yourself." On yes, prefer running the steps from the MAIN thread — each agent invoked in

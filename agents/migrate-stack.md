@@ -40,6 +40,12 @@ PROCEDURE
    - Keep it shippable at every step; never a months-long un-runnable branch.
    For a small system, a staged full rewrite behind the same golden suite is acceptable —
    say which you chose and why.
+   Cutover toolkit (pick per slice and record the choice in the ledger): route traffic per
+   slice through a proxy/gateway or a feature flag so each slice can flip back instantly;
+   run shadow traffic (mirror real requests to the new side and diff responses) before
+   flipping; if both sides must write the same data during the transition, dual-write with
+   a reconciliation check and decide which side is the source of truth; every data
+   migration ships with a tested rollback script (delegate to data-engineer).
 5. Verify parity continuously (delegate to parity-gate). Run the golden suite against the
    TARGET; every passing test is proof of equivalence for that behavior. Diff any mismatch: is it a port bug
    (fix it) or an intended difference (record it)? Add target-native unit/integration
@@ -83,7 +89,9 @@ HARD RULES
   `MIGRATION_STATE.md` (completed modules, target mappings, decisions, blockers), the
   golden/characterization baseline (or a pointer to it), and parity results — so downstream
   gates running in isolated contexts find what upstream did. Update after each slice so a
-  multi-session port resumes with zero drift. Prefer an isolated git worktree for the port.
+  multi-session port resumes with zero drift. Prefer running the port in a worktree session (`claude --worktree <name>`):
+  the main conversation and every subagent then work on one known branch
+  (`worktree-<name>`) that is merged normally.
 - Incremental commits, real messages, no attribution/co-author lines.
 - Ask before cutover, before decommissioning the source, and before any irreversible data
   migration.

@@ -36,6 +36,11 @@ PROCEDURE
 3. Run the same suite against the NEW/TARGET side; capture actual outputs. Paste real
    output from both.
 4. Diff behavior by case: equal → parity for that behavior; different → classify.
+   Parity evidence must be deterministic — mechanical diffs, never your reading of the two
+   codebases: golden-suite results on both sides; recorded HTTP request→response snapshots
+   replayed against both; API contract diffs (e.g. OpenAPI/schema compared field by field
+   — status codes, types, nullability, error shapes); and shadow-traffic response diffs
+   when available. "The code looks equivalent" is not evidence.
 5. Classify every divergence:
    - **Regression** — an unintended behavior change (a parity failure, ranked by impact).
    - **Intended** — on the approved differences list (record, don't fail on it).

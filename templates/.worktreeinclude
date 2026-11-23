@@ -1,0 +1,7 @@
+# Copied into new git worktrees (a `claude --worktree <name>` session, or an isolated
+# subagent) so the app and its tests can run there. Gitignore syntax: only files that match
+# here AND are gitignored get copied. Copying is for running the app — the guard hooks still
+# stop Claude from reading secret files.
+.env
+.env.local
+.env.*.local
