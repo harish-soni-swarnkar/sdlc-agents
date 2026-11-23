@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); command -v jq >/dev/null 2>&1 || { echo 'jq required for the protected-path guard — install jq.' >&2; exit 2; }; f=$(printf '%s' \"$input\" | jq -r '.tool_input.file_path // empty'); case \"$f\" in *.env|*/.env|*.env.*|*lock.json|*lock.yaml|*.lock) echo \"Blocked: $f is a protected path — change it by hand.\" >&2; exit 2;; */migrations/*) git ls-files --error-unmatch \"$f\" >/dev/null 2>&1 && { echo \"Blocked: $f is an existing (tracked) migration — migrations are immutable, create a new one instead.\" >&2; exit 2; };; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); command -v jq >/dev/null 2>&1 || exit 0; cmd=$(printf '%s' \"$input\" | jq -r '.tool_input.command // empty'); if printf '%s' \"$cmd\" | grep -Eq 'git[[:space:]]+push' && printf '%s' \"$cmd\" | grep -Eq -- '--force([[:space:]]|$)|[[:space:]]-f([[:space:]]|$)' && ! printf '%s' \"$cmd\" | grep -q 'force-with-lease'; then echo 'Blocked: force-push — use --force-with-lease, or run it by hand.' >&2; exit 2; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/format.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[repo] branch=$(git branch --show-current 2>/dev/null) | node=$(node -v 2>/dev/null) | python=$(python3 -V 2>/dev/null) | last=$(git log -1 --oneline 2>/dev/null) | ledger=$( [ -f .claude/state/MIGRATION_STATE.md ] && echo MIGRATION_STATE.md || { [ -f .claude/state/UPGRADE_PLAN.md ] && echo UPGRADE_PLAN.md || echo none; } )\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'PreCompact: flush migration/upgrade state to .claude/state/MIGRATION_STATE.md / UPGRADE_PLAN.md now — completed modules, target mappings, decisions, blockers — so nothing is summarized away.'"
+          }
+        ]
+      }
+    ]
+  }
+}

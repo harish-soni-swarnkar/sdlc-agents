@@ -1,0 +1,10 @@
+# Per-developer local overrides — never commit these
+CLAUDE.local.md
+.claude/settings.local.json
+settings.local.json
+
+# Release artifact (built by release.sh)
+Claude-Agents.zip
+
+# OS / editor noise
+.DS_Store
