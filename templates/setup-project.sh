@@ -5,15 +5,17 @@
 # (always refreshed) into <project>/.claude/, and makes the hooks executable.
 set -euo pipefail
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # the templates/ dir
+HOOKS="$SRC/../hooks"                                  # single source: the plugin's hooks/
 DEST="${1:-$(pwd)}"
 
 mkdir -p "$DEST/.claude/hooks"
 
 # Hook scripts: our code — always (re)install and mark executable.
-cp "$SRC/hooks/verify.sh" "$DEST/.claude/hooks/verify.sh"
-cp "$SRC/hooks/format.sh" "$DEST/.claude/hooks/format.sh"
-chmod +x "$DEST/.claude/hooks/verify.sh" "$DEST/.claude/hooks/format.sh"
-echo "installed .claude/hooks/{verify,format}.sh (+x)"
+for s in "$HOOKS"/*.sh; do
+  cp "$s" "$DEST/.claude/hooks/"
+  chmod +x "$DEST/.claude/hooks/$(basename "$s")"
+  echo "installed .claude/hooks/$(basename "$s") (+x)"
+done
 
 # Config files: the project's own — never clobber.
 if [ -f "$DEST/.claude/settings.json" ]; then

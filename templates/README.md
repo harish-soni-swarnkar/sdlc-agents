@@ -16,21 +16,28 @@ hooks executable, without clobbering an existing `settings.json` / `.mcp.json`:
 ```
 Or by hand:
 ```
-<project>/.claude/settings.json      <- from templates/settings.json
-<project>/.claude/hooks/verify.sh    <- from templates/hooks/verify.sh   (chmod +x)
-<project>/.claude/hooks/format.sh    <- from templates/hooks/format.sh   (chmod +x)
-<project>/.mcp.json                  <- from templates/.mcp.json
+<project>/.claude/settings.json   <- from templates/settings.json
+<project>/.claude/hooks/*.sh      <- from ../hooks/*.sh (the plugin's hooks — single source; chmod +x)
+<project>/.mcp.json               <- from templates/.mcp.json
 ```
 
-## `settings.json` + `hooks/` — stack-aware, not hardcoded
-The hooks call two **auto-detecting** scripts, so the same template works for Node, Python,
-Java, Go, Rust — and for a **polyglot / mid-migration tree** (e.g. a Java sidecar beside a
-new Node service) it checks **all** stacks present, not just one.
+## `settings.json` + hook scripts — stack-aware, not hardcoded
+The hooks call scripts from the plugin's `hooks/` folder (copied into the project), so the
+same template works for Node, Python, Java, Go, Rust — and for a **polyglot /
+mid-migration tree** (e.g. a Java sidecar beside a new Node service) it checks **all**
+stacks present, not just one.
 
 - **permissions.deny** — blocks `Read` **and `Grep`** on `.env*`, keys, secrets.
   (`.env.example` stays readable.) Mirrored globally in `~/.claude/settings.json`.
-- **PreToolUse (fail-closed)** — blocks edits to protected paths (`.env*`, lockfiles,
-  `migrations/`). If `jq` is missing it **blocks** rather than letting edits through.
+- **PreToolUse, Edit|Write (fail-closed)** — blocks edits to `.env*` (not `.env.example`),
+  lockfiles, and already-tracked migrations (new migrations are allowed). If `jq` is
+  missing it **blocks** rather than letting edits through.
+- **PreToolUse, Read|Grep → `guard-secrets.sh`** — blocks reading secret files. Works
+  without `jq` (sed fallback), so it neither fails open nor blocks every Read.
+- **PreToolUse, Bash → `guard-bash.sh`** — blocks force-push (`--force-with-lease` is
+  allowed), recursive `rm` on root/home/wildcard targets, DROP/TRUNCATE through a DB client,
+  `dropdb`/`db:drop`/`prisma migrate reset`, and printing secret files or the environment.
+  Fail-open if `jq` is missing.
 - **PostToolUse → `hooks/format.sh`** — formats the written file by extension
   (prettier · ruff · gofmt · rustfmt · google-java-format). Fail-open, never blocks.
 - **Stop → `hooks/verify.sh`** — detects every stack present and runs each one's
@@ -38,8 +45,9 @@ new Node service) it checks **all** stacks present, not just one.
   - **loop-protection** — exits 0 if `stop_hook_active` is already true (no infinite loop);
   - **no-op skip** — exits 0 when not a git repo or `git status --porcelain` is empty
     (pure Q&A turns don't trigger the suite).
-- **SessionStart** — injects lightweight repo health (branch, Node/Python version, last
-  commit, whether a migration/upgrade ledger exists) as the session opens.
+- **SessionStart → `session-start.sh`** — injects a one-line snapshot (branch, stacks
+  detected at root and depth-1, Node / `.nvmrc` / `engines.node`, last commit, ledger, and a
+  hint when Java and Node coexist) so `route` can classify the work immediately.
 - **PreCompact** — reminds Claude to flush the migration/upgrade ledger before the context
   is compacted, so long jobs don't lose decisions.
 
@@ -47,9 +55,11 @@ Edit `verify.sh` / `format.sh` to match the project's exact commands if the defa
 fit; they're ordinary shell scripts.
 
 ## `.mcp.json`
-- **context7** — live library/API docs in context (grounds code-gen in real signatures).
-- **playwright** — real browser for `qa-test-engineer` / `accessibility`.
-Verify package names and pin versions before relying on them.
+- **context7** (`@upstash/context7-mcp@4.7.3`) — live library/API docs in context (grounds
+  code-gen in real signatures).
+- **playwright** (`@playwright/mcp@0.0.86`) — real browser for `qa-test-engineer` /
+  `accessibility`.
+Both verified on the npm registry and pinned; bump the versions deliberately.
 
 ## Long-running migrations & upgrades — state that survives compaction
 A Java→Node port or a Node 18→22 upgrade across many modules spans days and many context

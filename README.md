@@ -15,17 +15,22 @@ rules, so you can compose them freely and trust the output.
 
 ## Status & caveats (honest)
 
-**Verified (machine-checked):** all JSON valid; all shell scripts pass `bash -n`; the
-force-push guard and the verify/format scripts run correctly; every agent's frontmatter
-parses with a matching `name` and a `model`; all 6 gates are read-only; `route` references
-every agent. One agent (`senior-auditor`) was smoke-tested end-to-end on a real repo.
+**Verified (machine-checked):** all JSON valid; all shell scripts pass `bash -n`; the hook
+guards were run against real inputs (`guard-bash.sh`: 22 block/allow cases, `guard-secrets.sh`:
+20 cases plus 10 with no `jq` on PATH to exercise its fallback); `session-start.sh` was run
+on a real repo, a polyglot repo, and a non-git dir; every agent's frontmatter parses with a
+matching `name` and a `model`; the 6 gates and the 2 reviewers have no edit tools;
+delegation uses the current `Agent` tool name; `route` references every agent; the MCP
+packages exist on npm and are pinned (`@upstash/context7-mcp@4.7.3`,
+`@playwright/mcp@0.0.86`). One agent (`senior-auditor`) was smoke-tested end-to-end on a
+real repo.
 
 **Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
-in CI) — not run here, the CLI wasn't available; confirm the MCP package names in
-`templates/.mcp.json` (`@upstash/context7-mcp`, `@playwright/mcp`) and pin versions;
-exercise the hooks inside a real Claude Code session. The other 28 agents are authored and
-structurally validated but not each run live. The hook scripts are sensible stack-detecting
-defaults — adapt the commands per project.
+in CI) — the CLI wasn't available where this was built; run `tests/test-hooks.sh` (it holds
+the recursive-`rm` guard cases, which a sandbox safety check wouldn't let the builder run
+unattended); exercise the hooks and the slash-command skills inside a real Claude Code
+session. The other 28 agents are authored and structurally validated but not each run live.
+The verify/format scripts are stack-detecting defaults — adapt the commands per project.
 
 ## Install
 
@@ -36,11 +41,14 @@ It has `.claude-plugin/plugin.json` (name: **`sdlc-agents`**), so Claude Code di
 `agents/`, `hooks/hooks.json`, and `skills/` automatically. Install it through a plugin
 marketplace / `claude plugin` (validate first with `claude plugin validate .`). Components
 are **namespaced** under the plugin, so you invoke e.g. `sdlc-agents:route`.
-- Agents load from `agents/*.md`; the guardrail hooks from `hooks/hooks.json`; the global
-  engineering rules ship as the **`engineering-rules` skill** (a plugin root `CLAUDE.md`
-  isn't loaded, so the rules are a skill in plugin mode).
-- Note: a plugin can't ship a `permissions` deny-list — keep the secrets deny-list in your
-  global `~/.claude/settings.json` (already set up) or a project's `settings.json`.
+- Agents load from `agents/*.md`; the guardrail hooks from `hooks/hooks.json`; the workflow
+  slash commands and the global engineering rules from `skills/` (a plugin-root `CLAUDE.md`
+  isn't loaded, so in plugin mode the rules are the **`engineering-rules` skill**);
+  **context7** (live library docs) from the root `.mcp.json`.
+- A plugin can't ship a `permissions` deny-list, so the plugin ships hooks that do the same
+  job: `guard-secrets.sh` blocks Read/Grep of secret files and `guard-bash.sh` blocks
+  printing them via the shell. A deny-list in `~/.claude/settings.json` or a project's
+  `settings.json` still adds a second layer.
 
 ### B) Manual / global (simplest for solo use)
 ```bash
@@ -137,8 +145,8 @@ agents **apply** them, the auditor **checks** them, and they're also set globall
 
 | Agent | Use it to… | Writes code? |
 |---|---|---|
-| **senior-auditor** | broad code-quality / design / SDLC review by reading the code | no* |
-| **security-reviewer** | defensive security + STRIDE: OWASP, authz, secrets, supply chain | no* |
+| **senior-auditor** | broad code-quality / design / SDLC review by reading the code | never (no edit tools) |
+| **security-reviewer** | defensive security + STRIDE: OWASP, authz, secrets, supply chain (CVEs, licenses, deprecated packages) | never (no edit tools) |
 | **qa-test-engineer** | adversarial testing — break it: edge cases, concurrency, crash/resume; failing tests | tests |
 | **performance-engineer** | latency, throughput, bottlenecks, memory leaks, N+1, scale cliffs — measure then optimize | opt. |
 | **accessibility** | WCAG 2.2 AA: keyboard, screen reader, contrast, focus, forms, motion | opt. |
@@ -154,7 +162,9 @@ agents **apply** them, the auditor **checks** them, and they're also set globall
 | **sre-reliability** | production readiness: observability, deploy/rollback, SLOs, runbooks, recovery | ops cfg |
 | **tech-writer** | README / HLD / LLD / DECISIONS / API docs + the extend-me handover doc | docs |
 
-\* review-only by default; applies fixes only if you explicitly ask.
+\* review-only by default; applies fixes only if you explicitly ask. The two code
+reviewers (`senior-auditor`, `security-reviewer`) have no edit tools at all — their fixes go
+through `fix-loop`.
 
 ---
 
@@ -187,6 +197,25 @@ ran and which it skipped.
 | **upgrade-runtime** | baseline → bump → codemods → deprecation sweep → parity → CI/Docker align | **major runtime/platform upgrade** (Node 18→22, JDK 8→17, Python major) |
 
 ---
+
+## Slash commands (plugin installs)
+
+Agents are delegated to, not typed as commands — so the plugin ships thin workflow skills as
+explicit entry points. They run in the main conversation (full delegation depth), name the
+flow, and hand off to the orchestrators above. They only run when you type them.
+
+| Command | Runs |
+|---|---|
+| `/sdlc-agents:start <task>` | `route` → the planned sequence, on your go |
+| `/sdlc-agents:new-project <brief>` | `ship-it` (or `takehome-runner` for graded exercises) |
+| `/sdlc-agents:feature <change>` | `onboard` if unmapped → `feature-dev` → `pr-ready` |
+| `/sdlc-agents:fix <symptom>` | `debugger` → `pr-ready` |
+| `/sdlc-agents:migrate <src> to <target>` | `onboard` → `migrate-stack` → `parity-gate` → `review-gate` |
+| `/sdlc-agents:upgrade <version>` | `onboard` if unmapped → `upgrade-runtime` → `parity-gate` → `release-devops` |
+| `/sdlc-agents:review [target]` | `review-gate` → `fix-loop` on request |
+| `/sdlc-agents:release [target]` | `production-gate` → `fix-loop` on request |
+
+With the manual `install.sh`, skills aren't installed — say "Use the route agent…" instead.
 
 ## Which do I use?
 
@@ -251,16 +280,22 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
   Installed.
 - **Per-project templates** (`templates/`, copy into each repo — not auto-installed; clean
   valid JSON, no comment keys; need `jq`):
-  - `settings.json` + `hooks/` — **stack-aware** hooks: PreToolUse (**fail-closed** block
-    of edits to secrets/lockfiles/migrations); PostToolUse → `hooks/format.sh` (formats by
-    file type); Stop → `hooks/verify.sh` (**auto-detects every stack present** — Node, Py,
-    Java, Go, Rust — and runs each one's tests, so a Java+Node mid-migration tree is fully
-    checked; `stop_hook_active` loop-protection + `git status` no-op skip); SessionStart
-    (injects repo/runtime health); PreCompact (reminds to flush the migration/upgrade
-    ledger). No hardcoded tool — adapts to the repo.
-  - `.mcp.json` — **context7** (live library docs → grounds code-gen in real
-    signatures, reinforcing the anti-hallucination rule) + **playwright** (real browser
-    for `qa`/`accessibility` verification).
+  - `settings.json` — the secrets deny-list plus hooks that call the scripts in the
+    plugin's `hooks/` (the single source — `setup-project.sh` copies them into the
+    project's `.claude/hooks/`):
+    - PreToolUse: **fail-closed** block of edits to secrets/lockfiles/tracked migrations;
+      `guard-secrets.sh` (Read/Grep of secret files); `guard-bash.sh` (force-push,
+      recursive `rm` on root/home/wildcard targets, DROP/TRUNCATE through a DB client,
+      `dropdb`/`db:drop`/`prisma migrate reset`, printing secrets or the environment).
+    - PostToolUse → `format.sh` (formats by file type).
+    - Stop → `verify.sh` (**auto-detects every stack present**, root and depth-1 — Node,
+      Py, Java, Go, Rust — and runs each one's tests; `stop_hook_active` loop-protection +
+      `git status` no-op skip). Opt-in per project, which is why it isn't in the plugin.
+    - SessionStart → `session-start.sh` (branch, detected stacks, runtime versions, ledger,
+      and a hint when Java and Node coexist); PreCompact (flush-the-ledger reminder).
+  - `.mcp.json` — pinned **context7** + **playwright** (real browser for
+    `qa`/`accessibility`). The plugin itself auto-wires only context7; playwright stays
+    opt-in because it launches browsers.
   - Install them into a project with `templates/setup-project.sh [project-dir]` (copies
     the files, makes the hooks executable, won't clobber existing config). The global
     `install.sh` installs **agents** only — per-project hooks are separate by design.
@@ -269,12 +304,16 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
 ## Model routing (cost vs. judgment)
 
 Each agent pins a `model:` so the bundle is predictable regardless of the session default:
-- **`opus`** — judgment-critical: senior-architect, senior-builder, feature-dev,
-  senior-auditor, security-reviewer, qa-test-engineer, debugger, performance-engineer,
-  refactorer, data-engineer.
-- **`sonnet`** — orchestration / advisory / ops / docs: all 5 gates, ship-it,
-  takehome-runner, fix-loop, sre-reliability, release-devops, tech-writer,
+- **`opus`** (12) — judgment-critical: senior-architect, senior-builder, feature-dev,
+  debugger, refactorer, senior-auditor, security-reviewer, qa-test-engineer,
+  performance-engineer, data-engineer, migrate-stack, upgrade-runtime.
+- **`sonnet`** (17) — orchestration / advisory / ops / docs: route, onboard, all 6 gates,
+  ship-it, takehome-runner, fix-loop, sre-reliability, release-devops, tech-writer,
   compliance-privacy, accessibility, finops-cost.
+
+`effort: high` is set on senior-architect, senior-auditor, and migrate-stack.
+`memory: project` is set on senior-architect and onboard, so they keep architectural
+decisions and repo maps across sessions (stored in the project's `.claude/agent-memory/`).
 
 Rationale: never downgrade an agent that writes or deeply reviews code; save cost on
 orchestration and advisory work (the gates delegate the heavy lifting to the `opus`

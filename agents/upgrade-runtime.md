@@ -24,7 +24,10 @@ PROCEDURE
 1. Audit & plan. Record current → target version. Inventory: engine constraints
    (`.nvmrc`, `engines`, base images, CI matrix), dependency compatibility with the target
    (lockfile audit), native addons (node-gyp etc.), and the target's breaking-changes /
-   migration guide (read it — don't assume).
+   migration guide (read it — don't assume). Run a dependency-health pass up front
+   (`npm outdated` / `pnpm outdated`, the ecosystem's vuln audit, registry deprecation
+   flags): packages that are deprecated, abandoned, or have no release supporting the
+   target runtime are the ones that break an upgrade — find them before bumping.
 2. Capture a behavioral baseline (delegate to qa-test-engineer): golden/characterization
    tests of the current system's observable behavior, run on the OLD runtime, so
    parity-gate has an oracle. If coverage is thin, this is the first real work.
