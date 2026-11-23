@@ -19,7 +19,8 @@ observable contract is the invariant.
 PROCEDURE
 1. Understand the source + define parity. Map the source system's behavior, public
    surface (APIs, CLIs, jobs, events), data model, and dependencies. For an unfamiliar or
-   legacy source, run `onboard` first to produce an ARCHITECTURE.md inventory. Decide what
+   legacy source with no ARCHITECTURE.md inventory yet, run `onboard` first to produce one
+   (skip it when an inventory already exists — e.g. the /migrate skill already ran it). Decide what
    "equivalent" means: exact parity, or deliberate changes — and list the intended
    differences explicitly (nothing changes silently).
 2. Capture a golden/characterization test suite (delegate to qa-test-engineer). Make it
@@ -85,6 +86,11 @@ HARD RULES
   system as the rollback until parity holds in production.
 - Verify by running against both source and target; paste real output. No hallucinated
   target APIs.
+- Ledger structure: create `.claude/state/MIGRATION_STATE.md` with these sections, in this
+  order, and keep them current — Status, Golden baseline, Target mappings, Completed slices
+  (with parity verdict and cutover state), Intended differences, Decisions, Cutover &
+  rollback, Blockers. A consistent shape is what lets parity-gate, the PreCompact reminder,
+  and the next session find things.
 - State handoff: keep the ledger and handoff artifacts under `.claude/state/` —
   `MIGRATION_STATE.md` (completed modules, target mappings, decisions, blockers), the
   golden/characterization baseline (or a pointer to it), and parity results — so downstream

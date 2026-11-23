@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "input=$(cat); command -v jq >/dev/null 2>&1 || { echo 'jq required for the protected-path guard — install jq.' >&2; exit 2; }; f=$(printf '%s' \"$input\" | jq -r '.tool_input.file_path // empty'); case \"$f\" in *.env.example|*.env.sample|*.env.template) ;; *.env|*/.env|*.env.*|*lock.json|*lock.yaml|*.lock) echo \"Blocked: $f is a protected path — change it by hand.\" >&2; exit 2;; */migrations/*) git ls-files --error-unmatch \"$f\" >/dev/null 2>&1 && { echo \"Blocked: $f is an existing (tracked) migration — migrations are immutable, create a new one instead.\" >&2; exit 2; };; esac"
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-edit.sh\""
           }
         ]
       },

@@ -4,7 +4,7 @@
 #   - force-push (--force-with-lease is allowed)
 #   - recursive rm on a root / home / wildcard target (normal paths like node_modules are fine)
 #   - destructive SQL through a database client (DROP / TRUNCATE, dropdb, db:drop, migrate reset)
-#   - printing secret files or the whole environment
+#   - printing or searching secret files, or printing the whole environment
 # Fail-open if jq is missing: a missing parser shouldn't block every shell command.
 set -o pipefail
 input=$(cat)
@@ -39,9 +39,19 @@ if printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])dropdb[[:space:]]|db:drop|pr
   block "database drop/reset — run it by hand if you really mean it."
 fi
 
-# Printing secrets: secret files via the shell, or the whole environment
+# Printing secrets: secret files dumped or searched through the shell. A `.env` filename
+# must start at a path boundary, so code searches like `grep -rn "process.env" src/` pass;
+# `.key`/`.pem` only count for dump commands, so `grep "entry.key"` passes too.
 cleaned=$(printf '%s' "$cmd" | sed -E 's/\.env\.(example|sample|template)//g')
-if printf '%s' "$cleaned" | grep -Eq '(^|[;&|[:space:]])(cat|less|more|head|tail|bat|xxd|strings|od)[[:space:]][^;&|]*(\.env([.[:space:]]|$)|\.pem([[:space:]]|$)|\.key([[:space:]]|$)|id_rsa|id_ed25519|/secrets/|\.aws/credentials)'; then
+pre='(^|[;&|(`[:space:]])'
+end="([.\"';&|)[:space:]]|\$)"
+envtok="([^;&|]*[[:space:]/\"'=])?\\.env${end}"
+othertok="[^;&|]*(id_rsa|id_ed25519|\\.aws/credentials|/secrets/)"
+keytok="[^;&|]*\\.(pem|key)${end}"
+dump='(cat|less|more|head|tail|bat|xxd|strings|od|base64|nl|tac)'
+search='(grep|egrep|fgrep|rg|awk|sed|cut)'
+if printf '%s' "$cleaned" | grep -Eq "${pre}${dump}[[:space:]](${envtok}|${othertok}|${keytok})" \
+  || printf '%s' "$cleaned" | grep -Eq "${pre}${search}[[:space:]](${envtok}|${othertok})"; then
   block "reading a secrets file via the shell — reference the key name, not the value."
 fi
 if printf '%s' "$cmd" | grep -Eq '(^|[;&|[:space:]])printenv([[:space:]]|$)|(^|[;&|[:space:]])env[[:space:]]*($|[;&|])'; then

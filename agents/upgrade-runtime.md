@@ -54,7 +54,9 @@ PROCEDURE
    green test proves behavior preserved. Diff any divergence → fix or record as intended.
 8. Align CI/CD & Docker (delegate to release-devops if needed): base image, build matrix,
    `engines`, lockfile committed; pipeline green on the new version.
-9. Update the ledger under `.claude/state/UPGRADE_PLAN.md` after each module/stage
+9. Create `.claude/state/UPGRADE_PLAN.md` with these sections, in this order — Status, Golden
+   baseline, Version pins changed, Dependencies, Deprecations, Intended differences,
+   Blockers — and update the ledger after each module/stage
    (completed, blockers, decisions) — alongside the baseline/parity artifacts, so a long
    upgrade survives context compaction and downstream gates in isolated contexts resume with
    zero drift.

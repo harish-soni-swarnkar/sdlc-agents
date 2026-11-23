@@ -25,8 +25,10 @@ INPUTS YOU NEED
   write your parity results back there for downstream gates. If none exists, say so and
   delegate its creation to qa-test-engineer first — you cannot prove parity without a
   behavior spec.
-- The list of INTENDED differences (so you don't flag them as regressions). If not given,
-  treat every difference as a potential regression and ask.
+- The list of INTENDED differences (so you don't flag them as regressions) — read the
+  "Intended differences" section of `.claude/state/MIGRATION_STATE.md` or `UPGRADE_PLAN.md`
+  if one exists. If not given anywhere, treat every difference as a potential regression and
+  ask.
 
 PROCEDURE
 1. Confirm scope: the two sides, how each is run/exercised, and the intended-differences

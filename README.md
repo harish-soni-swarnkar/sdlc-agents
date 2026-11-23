@@ -8,16 +8,19 @@ cost, operations, release, docs, and the pipelines that chain it all end to end.
 They are **true siblings**: every one shares the same standing bar and the same hard
 rules, so you can compose them freely and trust the output.
 
-- **Live location (what Claude Code runs):** `~/.claude/agents/`
-- **This folder:** the portable master copy — edit here, run `./install.sh` to deploy.
+- **Two ways to run it** (see Install): as the `sdlc-agents` **plugin**, or copied into
+  `~/.claude/agents/` by **`install.sh`**.
+- **This repo is the source of truth** either way — edit here, then update the plugin or
+  re-run `./install.sh`.
 
 ---
 
 ## Status & caveats (honest)
 
 **Verified (machine-checked):** all JSON valid; all shell scripts pass `bash -n`; the hook
-guards pass the full suite in `tests/test-hooks.sh` (45 block/allow cases, including the
-recursive-`rm` guard), and `guard-secrets.sh` was also run with no `jq` on PATH to exercise
+guards pass the full suite in `tests/test-hooks.sh` (79 block/allow cases, including the
+recursive-`rm` guard, quoted/piped secret reads, directory-level Grep, and tracked vs new
+migrations against a committed fixture), and `guard-secrets.sh` was also run with no `jq` on PATH to exercise
 its fallback; `session-start.sh` was run
 on a real repo, a polyglot repo, and a non-git dir; every agent's frontmatter parses with a
 matching `name` and a `model`; the 6 gates and the 2 reviewers have no edit tools;
@@ -27,7 +30,9 @@ packages exist on npm and are pinned (`@upstash/context7-mcp@4.7.3`,
 real repo.
 
 **Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
-in CI) — the CLI wasn't available where this was built; exercise the hooks and the
+in CI) — the CLI wasn't available where this was built. `.github/workflows/ci.yml` runs the
+syntax checks, the hook tests, and the plugin validator on every push, but hasn't run on
+GitHub yet (its validate job installs the CLI from npm and is unverified there); exercise the hooks and the
 slash-command skills inside a real Claude Code session. The other 28 agents are authored and structurally validated but not each run live.
 The verify/format scripts are stack-detecting defaults — adapt the commands per project.
 
@@ -210,10 +215,10 @@ flow, and hand off to the orchestrators above. They only run when you type them.
 |---|---|
 | `/sdlc-agents:start <task>` | `route` → the planned sequence, on your go |
 | `/sdlc-agents:new-project <brief>` | `ship-it` (or `takehome-runner` for graded exercises) |
-| `/sdlc-agents:feature <change>` | `onboard` if unmapped → `feature-dev` → `pr-ready` |
+| `/sdlc-agents:feature <change>` | `onboard` if unmapped → `feature-dev` (self-gates with `pr-ready` / `review-gate`) |
 | `/sdlc-agents:fix <symptom>` | `debugger` → `pr-ready` |
-| `/sdlc-agents:migrate <src> to <target>` | `onboard` → `migrate-stack` → `parity-gate` → `review-gate` |
-| `/sdlc-agents:upgrade <version>` | `onboard` if unmapped → `upgrade-runtime` → `parity-gate` → `release-devops` |
+| `/sdlc-agents:migrate <src> to <target>` | `onboard` if unmapped → `migrate-stack` (runs its own `parity-gate` + `review-gate`) |
+| `/sdlc-agents:upgrade <version>` | `onboard` if unmapped → `upgrade-runtime` (runs its own `parity-gate` + `release-devops`) |
 | `/sdlc-agents:review [target]` | `review-gate` → `fix-loop` on request |
 | `/sdlc-agents:release [target]` | `production-gate` → `fix-loop` on request |
 
@@ -312,6 +317,10 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
     per-project hooks are separate by design.
   - In target projects, the `.claude/state/` ledger is tracked by git by default, which is
     intended: migration state is shared across the team and survives branch switches.
+  - `state/` — reference skeletons of `MIGRATION_STATE.md` and `UPGRADE_PLAN.md`. The agents
+    create the real ledgers with the same sections when a port or upgrade starts;
+    `setup-project.sh` deliberately doesn't pre-create them, because `session-start.sh`
+    reads an existing ledger as "a migration is in progress".
   - See `templates/README.md` for details.
 
 ## Model routing (cost vs. judgment)

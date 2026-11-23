@@ -10,7 +10,7 @@ Runs in the main conversation, so it can delegate to the crew at full depth. In 
 
 1. If this repo hasn't been mapped yet (no ARCHITECTURE.md, and you haven't explored it this
    session), run `onboard` first.
-2. Run `feature-dev` with the change.
-3. Run `pr-ready` on the resulting diff — or `review-gate` if the change is large or touches
-   security, data, or a critical path.
-4. Report the diff summary, the test results, and the gate verdict.
+2. Run `feature-dev` with the change. It self-gates (`pr-ready`, or `review-gate` for large
+   or sensitive changes), so don't run that gate again here.
+3. Report the diff summary, the test results, and its gate verdict. Only if it reports that
+   the gate didn't run, run `pr-ready` yourself.

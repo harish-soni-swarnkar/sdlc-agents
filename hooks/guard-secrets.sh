@@ -16,7 +16,8 @@ for t in "$(field file_path)" "$(field path)" "$(field glob)"; do
   [ -n "$t" ] || continue
   case "$t" in
     *.env.example|*.env.sample|*.env.template) ;;
-    .env|*/.env|.env.*|*/.env.*|*.pem|*.key|*.p12|*.keystore|*id_rsa|*id_ed25519|*/.ssh/*|*/.aws/credentials|secrets/*|*/secrets/*)
+    .env|*/.env|.env.*|*/.env.*|*.env|.env\*|*/.env\*|*.pem|*.key|*.p12|*.keystore|*id_rsa|*id_ed25519|\
+    .ssh|*/.ssh|*/.ssh/*|.aws|*/.aws|*/.aws/*|secrets|*/secrets|secrets/*|*/secrets/*)
       echo "Blocked: $t looks like a secrets file — reference the key name, don't read the value." >&2
       exit 2 ;;
   esac
