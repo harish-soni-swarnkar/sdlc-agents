@@ -9,7 +9,8 @@ pass=0; fail=0
 
 check() { # $1=expected BLOCK|ALLOW  $2=guard script  $3=tool_input JSON
   printf '%s' "$3" | bash "$2" >/dev/null 2>&1
-  local got; got=$([ $? -eq 2 ] && echo BLOCK || echo ALLOW)
+  local rc=$?   # capture first: a separate `local` statement would reset $? to 0
+  local got; got=$([ "$rc" -eq 2 ] && echo BLOCK || echo ALLOW)
   if [ "$got" = "$1" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL ($2): expected $1, got $got: $3"; fi
 }
 bash_case()   { check "$1" guard-bash.sh "$(jq -nc --arg c "$2" '{tool_input:{command:$c}}')"; }

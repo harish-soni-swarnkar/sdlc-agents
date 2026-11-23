@@ -16,8 +16,9 @@ rules, so you can compose them freely and trust the output.
 ## Status & caveats (honest)
 
 **Verified (machine-checked):** all JSON valid; all shell scripts pass `bash -n`; the hook
-guards were run against real inputs (`guard-bash.sh`: 22 block/allow cases, `guard-secrets.sh`:
-20 cases plus 10 with no `jq` on PATH to exercise its fallback); `session-start.sh` was run
+guards pass the full suite in `tests/test-hooks.sh` (45 block/allow cases, including the
+recursive-`rm` guard), and `guard-secrets.sh` was also run with no `jq` on PATH to exercise
+its fallback; `session-start.sh` was run
 on a real repo, a polyglot repo, and a non-git dir; every agent's frontmatter parses with a
 matching `name` and a `model`; the 6 gates and the 2 reviewers have no edit tools;
 delegation uses the current `Agent` tool name; `route` references every agent; the MCP
@@ -26,10 +27,8 @@ packages exist on npm and are pinned (`@upstash/context7-mcp@4.7.3`,
 real repo.
 
 **Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
-in CI) — the CLI wasn't available where this was built; run `tests/test-hooks.sh` (it holds
-the recursive-`rm` guard cases, which a sandbox safety check wouldn't let the builder run
-unattended); exercise the hooks and the slash-command skills inside a real Claude Code
-session. The other 28 agents are authored and structurally validated but not each run live.
+in CI) — the CLI wasn't available where this was built; exercise the hooks and the
+slash-command skills inside a real Claude Code session. The other 28 agents are authored and structurally validated but not each run live.
 The verify/format scripts are stack-detecting defaults — adapt the commands per project.
 
 ## Install
