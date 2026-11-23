@@ -1,0 +1,112 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(**/.env.development)",
+      "Read(**/.env.production)",
+      "Read(**/.env.staging)",
+      "Read(**/.env.test)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.keystore)",
+      "Read(**/id_rsa)",
+      "Read(**/id_ed25519)",
+      "Read(**/.ssh/**)",
+      "Read(**/.aws/credentials)",
+      "Read(**/secrets/**)",
+      "Grep(**/.env)",
+      "Grep(**/.env.local)",
+      "Grep(**/.env.*.local)",
+      "Grep(**/.env.development)",
+      "Grep(**/.env.production)",
+      "Grep(**/.env.staging)",
+      "Grep(**/.env.test)",
+      "Grep(**/*.pem)",
+      "Grep(**/*.key)",
+      "Grep(**/secrets/**)",
+      "Bash(cat *.env*)",
+      "Bash(cat *secret*)",
+      "Bash(less *.env*)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(printenv)",
+      "Bash(printenv:*)",
+      "Bash(env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); command -v jq >/dev/null 2>&1 || { echo 'jq required for the protected-path guard — install jq.' >&2; exit 2; }; f=$(printf '%s' \"$input\" | jq -r '.tool_input.file_path // empty'); case \"$f\" in *.env.example|*.env.sample|*.env.template) ;; *.env|*/.env|*.env.*|*lock.json|*lock.yaml|*.lock) echo \"Blocked: $f is a protected path — change it by hand.\" >&2; exit 2;; */migrations/*) git ls-files --error-unmatch \"$f\" >/dev/null 2>&1 && { echo \"Blocked: $f is an existing (tracked) migration — migrations are immutable, create a new one instead.\" >&2; exit 2; };; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-secrets.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-bash.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/format.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); printf '%s' \"$input\" | jq -e '.stop_hook_active == true' >/dev/null 2>&1 && exit 0; git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; [ -n \"$(git status --porcelain)\" ] || exit 0; bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/verify.sh\" || { echo 'Verify failed (typecheck/tests) — fix before finishing.' >&2; exit 2; }"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-start.sh\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'PreCompact: flush migration/upgrade state to .claude/state/MIGRATION_STATE.md / UPGRADE_PLAN.md now — completed modules, target mappings, decisions, blockers — so nothing is summarized away.'"
+          }
+        ]
+      }
+    ]
+  }
+}

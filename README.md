@@ -58,7 +58,10 @@ installs the README there, and installs the always-on rules to `~/.claude/CLAUDE
 (only if one isn't already there — never clobbers). Re-run any time; new agents are picked
 up automatically.
 
-Package the kit for sharing (excludes `.DS_Store` / `.git`):
+Package the kit for sharing — only from a clean, committed tree. It runs the hook tests
+and `claude plugin validate . --strict`, then zips HEAD with `git archive` (tracked files
+only, so local files never leak). Without the `claude` CLI it refuses unless you pass
+`--skip-validate`:
 ```bash
 ./release.sh
 ```
@@ -279,9 +282,12 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
   Installed.
 - **Per-project templates** (`templates/`, copy into each repo — not auto-installed; clean
   valid JSON, no comment keys; need `jq`):
-  - `settings.json` — the secrets deny-list plus hooks that call the scripts in the
-    plugin's `hooks/` (the single source — `setup-project.sh` copies them into the
-    project's `.claude/hooks/`):
+  - `settings.json` (plugin companion, the default) — only the secrets deny-list and the
+    opt-in Stop test gate, because the plugin already registers the other hooks and
+    wiring them twice would make each fire twice.
+  - `settings.standalone.json` (`setup-project.sh --standalone`, for projects without the
+    plugin) — the deny-list plus hooks that call the scripts in the plugin's `hooks/` (the
+    single source — `setup-project.sh` copies them into the project's `.claude/hooks/`):
     - PreToolUse: **fail-closed** block of edits to secrets/lockfiles/tracked migrations;
       `guard-secrets.sh` (Read/Grep of secret files); `guard-bash.sh` (force-push,
       recursive `rm` on root/home/wildcard targets, DROP/TRUNCATE through a DB client,
@@ -300,9 +306,12 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
   - `.mcp.json` — pinned **context7** + **playwright** (real browser for
     `qa`/`accessibility`). The plugin itself auto-wires only context7; playwright stays
     opt-in because it launches browsers.
-  - Install them into a project with `templates/setup-project.sh [project-dir]` (copies
-    the files, makes the hooks executable, won't clobber existing config). The global
-    `install.sh` installs **agents** only — per-project hooks are separate by design.
+  - Install them into a project with `templates/setup-project.sh [--standalone]
+    [project-dir]` (copies the files, makes the hooks executable, won't clobber existing
+    config, refuses a nonexistent path). The global `install.sh` installs **agents** only —
+    per-project hooks are separate by design.
+  - In target projects, the `.claude/state/` ledger is tracked by git by default, which is
+    intended: migration state is shared across the team and survives branch switches.
   - See `templates/README.md` for details.
 
 ## Model routing (cost vs. judgment)

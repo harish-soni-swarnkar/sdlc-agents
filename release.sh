@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
-# Build a distributable zip of the kit — only after the checks pass.
-#  1. tests/test-hooks.sh must pass (guard block/allow cases).
-#  2. `claude plugin validate . --strict` must pass when the claude CLI is available;
-#     if it isn't on PATH, say so loudly instead of pretending the plugin was validated.
+# Build a distributable zip of the kit — only from a clean, committed, checked tree.
+#   ./release.sh                  hook tests + `claude plugin validate . --strict`, then package
+#   ./release.sh --skip-validate  allow packaging when the claude CLI isn't available (says so)
+#
+# The zip is built with `git archive` from HEAD, so only tracked, committed files ship —
+# never local files like CLAUDE.local.md, .claude/settings.local.json, or stray artifacts.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+
+skip_validate=0
+for arg in "$@"; do
+  case "$arg" in
+    --skip-validate) skip_validate=1 ;;
+    -h|--help) sed -n '2,7p' "$0"; exit 0 ;;
+    *) echo "error: unknown option '$arg' (see --help)" >&2; exit 1 ;;
+  esac
+done
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "error: working tree has uncommitted changes — commit them first, so the zip matches a commit." >&2
+  git status --short >&2
+  exit 1
+fi
 
 echo "== hook tests =="
 ./tests/test-hooks.sh
@@ -12,12 +29,14 @@ echo "== hook tests =="
 echo "== plugin validation =="
 if command -v claude >/dev/null 2>&1; then
   claude plugin validate . --strict
+elif [ "$skip_validate" -eq 1 ]; then
+  echo "WARNING: claude CLI not on PATH — packaging WITHOUT plugin validation (--skip-validate)." >&2
 else
-  echo "WARNING: claude CLI not on PATH — plugin manifest/frontmatter NOT validated." >&2
-  echo "         Run 'claude plugin validate . --strict' before publishing." >&2
+  echo "error: claude CLI not on PATH, so the plugin can't be validated." >&2
+  echo "       Install it, or re-run with --skip-validate to package anyway." >&2
+  exit 1
 fi
 
 echo "== package =="
-rm -f Claude-Agents.zip
-zip -qr Claude-Agents.zip . -x "*.DS_Store" -x ".git/*" -x "Claude-Agents.zip"
-echo "Wrote $(pwd)/Claude-Agents.zip"
+git archive --format=zip --output=Claude-Agents.zip HEAD
+echo "Wrote $(pwd)/Claude-Agents.zip from $(git rev-parse --short HEAD)"

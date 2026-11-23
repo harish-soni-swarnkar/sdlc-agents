@@ -3,27 +3,39 @@
 Markdown agents are *advisory*; these files are *deterministic* — the harness runs them
 whether or not the model "remembers." They are **per-project** (stacks differ), so they are
 **templates you copy into each repo and adapt** — not installed globally by `install.sh`.
-Both JSON files are **clean, valid JSON** (no comment keys), so they pass Claude Code's
+All JSON files are **clean, valid JSON** (no comment keys), so they pass Claude Code's
 schema validation as-is — this file is the documentation.
 
 > Requires **`jq`** (hooks parse the event JSON on stdin with it).
 
 ## Install into a project
-One command (from the project root, or pass its path) — copies the files and makes the
-hooks executable, without clobbering an existing `settings.json` / `.mcp.json`:
+One command (from the project root, or pass its path). It copies the files, makes the hooks
+executable, never overwrites an existing `settings.json` / `.mcp.json` / rules file /
+`.worktreeinclude`, and refuses a destination that doesn't exist:
 ```
-/path/to/Claude-Agents/templates/setup-project.sh [project-dir]
+/path/to/Claude-Agents/templates/setup-project.sh [--standalone] [project-dir]
 ```
+Pick the mode to match how the project gets the agents:
+- **default — plugin companion** (`settings.json`): the project has the `sdlc-agents` plugin
+  enabled. The plugin already registers the guard, format, SessionStart, and PreCompact
+  hooks, so the project settings carry only what a plugin can't ship — the permissions
+  deny-list and the opt-in Stop test gate. Wiring the same hooks in both places would make
+  each fire twice.
+- **`--standalone`** (`settings.standalone.json`): the project does NOT use the plugin
+  (agents installed with `install.sh`). The project settings carry the full hook set.
+
 Or by hand:
 ```
-<project>/.claude/settings.json   <- from templates/settings.json
+<project>/.claude/settings.json   <- from templates/settings.json (or settings.standalone.json)
 <project>/.claude/hooks/*.sh      <- from ../hooks/*.sh (the plugin's hooks — single source; chmod +x)
 <project>/.mcp.json               <- from templates/.mcp.json
 <project>/.claude/rules/*.md      <- from templates/rules/*.md
 <project>/.worktreeinclude        <- from templates/.worktreeinclude
 ```
 
-## `settings.json` + hook scripts — stack-aware, not hardcoded
+## Hooks and scripts — stack-aware, not hardcoded
+(The full set below is what `--standalone` installs; in companion mode the plugin provides
+all of it except the Stop gate.)
 The hooks call scripts from the plugin's `hooks/` folder (copied into the project), so the
 same template works for Node, Python, Java, Go, Rust — and for a **polyglot /
 mid-migration tree** (e.g. a Java sidecar beside a new Node service) it checks **all**
