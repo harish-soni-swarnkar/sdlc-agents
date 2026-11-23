@@ -293,3 +293,9 @@ Orchestrators: route (router / entry point) · pr-ready · review-gate · design
 hardening-gate · production-gate · parity-gate · ship-it · takehome-runner · feature-dev* ·
 fix-loop · migrate-stack · upgrade-runtime
 (*feature-dev is both a brownfield pipeline and the go-to for existing-code changes.)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE). Free to use, modify, and redistribute.

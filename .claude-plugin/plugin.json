@@ -3,5 +3,6 @@
   "version": "1.0.0",
   "description": "A full SDLC agent crew for Claude Code — design, build (greenfield + brownfield), the review gates, migration, runtime upgrade, and ops/domain specialists, all sharing one quality bar. Entry point: the `route` agent.",
   "author": { "name": "hk220394" },
+  "license": "MIT",
   "keywords": ["agents", "sdlc", "code-review", "migration", "testing", "devops"]
 }
