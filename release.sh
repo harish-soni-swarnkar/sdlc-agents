@@ -26,6 +26,13 @@ fi
 echo "== hook tests =="
 ./tests/test-hooks.sh
 
+echo "== frontmatter (strict YAML) =="
+./tests/test-frontmatter.sh
+
+echo "== portable edition =="
+python3 portable/build.py --check
+python3 portable/validate.py
+
 echo "== plugin validation =="
 if command -v claude >/dev/null 2>&1; then
   claude plugin validate . --strict

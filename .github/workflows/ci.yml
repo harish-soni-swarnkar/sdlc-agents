@@ -13,8 +13,26 @@ jobs:
         run: for f in $(git ls-files '*.sh'); do bash -n "$f"; done
       - name: JSON validity
         run: for f in $(git ls-files '*.json'); do python3 -m json.tool "$f" > /dev/null; done
+      - name: Frontmatter is strict YAML
+        run: ./tests/test-frontmatter.sh
       - name: Hook guard tests
         run: ./tests/test-hooks.sh
+      - name: Portable edition is up to date
+        run: python3 portable/build.py --check
+      - name: Portable edition validates
+        run: python3 portable/validate.py
+
+  skills-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the official Agent Skills validator
+        run: pip install skills-ref
+      - name: Validate every portable skill
+        run: for d in portable/skills/*/; do skills-ref validate "$d"; done
 
   plugin-validate:
     runs-on: ubuntu-latest

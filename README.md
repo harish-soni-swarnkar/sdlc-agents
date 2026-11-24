@@ -22,17 +22,22 @@ guards pass the full suite in `tests/test-hooks.sh` (79 block/allow cases, inclu
 recursive-`rm` guard, quoted/piped secret reads, directory-level Grep, and tracked vs new
 migrations against a committed fixture), and `guard-secrets.sh` was also run with no `jq` on PATH to exercise
 its fallback; `session-start.sh` was run
-on a real repo, a polyglot repo, and a non-git dir; every agent's frontmatter parses with a
-matching `name` and a `model`; the 6 gates and the 2 reviewers have no edit tools;
+on a real repo, a polyglot repo, and a non-git dir; every frontmatter block (agents,
+skills, rules, portable skills — 72 files) parses as **strict** YAML with a matching `name`,
+and every agent has a `model`; the 6 gates and the 2 reviewers have no edit tools;
 delegation uses the current `Agent` tool name; `route` references every agent; the MCP
 packages exist on npm and are pinned (`@upstash/context7-mcp@4.7.3`,
-`@playwright/mcp@0.0.86`). One agent (`senior-auditor`) was smoke-tested end-to-end on a
+`@playwright/mcp@0.0.86`). The portable edition passes its own spec validator (which a
+deliberately broken copy was shown to fail), its build is reproducible, and its installer
+was tested in every mode. One agent (`senior-auditor`) was smoke-tested end-to-end on a
 real repo.
 
 **Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
 in CI) — the CLI wasn't available where this was built. `.github/workflows/ci.yml` runs the
-syntax checks, the hook tests, and the plugin validator on every push, but hasn't run on
-GitHub yet (its validate job installs the CLI from npm and is unverified there); exercise the hooks and the
+syntax checks, strict-YAML frontmatter, the hook tests, the portable edition checks, the
+official `skills-ref` validator, and the plugin validator on every push, but hasn't run on
+GitHub yet (the `skills-ref` and plugin-validate jobs install their tools from PyPI/npm and
+are unverified there); exercise the hooks and the
 slash-command skills inside a real Claude Code session. The other 28 agents are authored and structurally validated but not each run live.
 The verify/format scripts are stack-detecting defaults — adapt the commands per project.
 
@@ -63,8 +68,20 @@ installs the README there, and installs the always-on rules to `~/.claude/CLAUDE
 (only if one isn't already there — never clobbers). Re-run any time; new agents are picked
 up automatically.
 
-Package the kit for sharing — only from a clean, committed tree. It runs the hook tests
-and `claude plugin validate . --strict`, then zips HEAD with `git archive` (tracked files
+### C) Any other AI tool — the portable edition
+Codex, Cursor, GitHub Copilot, Gemini CLI, Antigravity, and other Agent Skills tools get the
+same crew as standard SKILL.md skills plus an `AGENTS.md`, from [`portable/`](portable/README.md):
+```bash
+npx skills add harish-soni-swarnkar/sdlc-agents/portable
+```
+(or `./portable/install.sh` without Node). It's generated from `agents/` by
+`portable/build.py`, so both editions stay in sync. Same instructions — but no isolated
+contexts, permission limits, per-agent models, or enforcing hooks; see
+[what's different](portable/README.md#whats-different-from-the-claude-code-edition).
+
+Package the kit for sharing — only from a clean, committed tree. It runs the hook tests,
+the strict-YAML frontmatter check, the portable edition checks, and
+`claude plugin validate . --strict`, then zips HEAD with `git archive` (tracked files
 only, so local files never leak). Without the `claude` CLI it refuses unless you pass
 `--skip-validate`:
 ```bash
