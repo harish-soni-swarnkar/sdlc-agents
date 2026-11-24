@@ -1,5 +1,6 @@
 {
   "name": "sdlc-agents",
+  "description": "A full software-delivery agent crew for Claude Code — 29 agents, 6 review gates, and hooks that enforce the safety rules.",
   "owner": {
     "name": "Harish Soni Swarnkar"
   },

@@ -1,141 +1,189 @@
-# Project templates — deterministic enforcement & tooling
+<div align="center">
 
-Markdown agents are *advisory*; these files are *deterministic* — the harness runs them
-whether or not the model "remembers." They are **per-project** (stacks differ), so they are
-**templates you copy into each repo and adapt** — not installed globally by `install.sh`.
-All JSON files are **clean, valid JSON** (no comment keys), so they pass Claude Code's
-schema validation as-is — this file is the documentation.
+# 🧰 Per-project kit
 
-> Requires **`jq`** (hooks parse the event JSON on stdin with it).
+**Deterministic guardrails and tooling for any repo — one command, nothing overwritten.**
 
-## Install into a project
-One command (from the project root, or pass its path). It copies the files, makes the hooks
-executable, never overwrites an existing `settings.json` / `.mcp.json` / rules file /
-`.worktreeinclude`, and refuses a destination that doesn't exist:
+Hooks that *enforce* · a golden-replay parity harness · git hooks for every tool · path-scoped rules · pinned MCP servers
+
+[![License: MIT](../.github/assets/badges/license.svg)](../LICENSE)
+[![Claude Code plugin](../.github/assets/badges/claude-code-plugin.svg)](../README.md#-quick-start)
+
+[What you get](#-what-you-get) · [Install](#-install) · [Hooks](#-hooks-that-enforce) · [Harness](#-golden-replay-harness) · [Git hooks](#-git-hooks) · [Rules](#-path-scoped-rules) · [Long migrations](#-long-running-migrations--upgrades)
+
+[← back to the main README](../README.md)
+
+</div>
+
+---
+
+Agent instructions are *advisory*. Everything here is *deterministic*: Claude Code or git runs it whether or not the model "remembers". It's **per-project** because test, format, and lint commands differ by stack, so each repo gets its own copy, adapted to it.
+
+> [!NOTE]
+> Requires **`jq`** (the hooks read their event JSON with it). All JSON files are clean, valid JSON with no comment keys, so they pass Claude Code's schema validation as-is.
+
+---
+
+## ✨ What you get
+
+| Piece | What it does | Works in |
+|---|---|---|
+| 🔒 **Hooks & settings** | Block secret reads, force-push, destructive commands, edits to existing migrations; auto-format; optional "tests must pass" gate | Claude Code |
+| 🔁 **Golden-replay harness** | Record an HTTP API's responses, replay them against the new system, diff — the parity oracle for ports and upgrades | Anywhere (Python 3.8+) |
+| 🪝 **Git hooks** | Refuse committing secrets or keys, editing an existing migration, and force-pushing | **Any tool** — git runs them |
+| 🧭 **Path-scoped rules** | TS/JS, Java, Python, Go conventions that load only for matching files | Claude Code |
+| 🔌 **`.mcp.json`** | Pinned context7 (live library docs) + Playwright (real browser checks) | Claude Code |
+| 🌳 **`.worktreeinclude`** | Copies `.env`-style files into a worktree session so the app runs there | Claude Code |
+
+---
+
+## ⚡ Install
+
+From the project root (or pass its path):
+
+```bash
+/path/to/sdlc-agents/templates/setup-project.sh [--standalone] [--git-hooks] [project-dir]
 ```
-/path/to/Claude-Agents/templates/setup-project.sh [--standalone] [--git-hooks] [project-dir]
+
+It copies the files and makes the scripts executable. It **never overwrites** an existing `settings.json`, `.mcp.json`, rules file, or `.worktreeinclude`, and it refuses a destination that doesn't exist.
+
+| Option | Use it when |
+|---|---|
+| *(default)* — **plugin companion** | The project has the `sdlc-agents` plugin enabled. The plugin already registers the guard, format, session-start, and pre-compact hooks, so the project settings add only what a plugin can't ship: the permissions deny-list and the opt-in test gate. *(Wiring the same hooks in both places would make each fire twice.)* |
+| `--standalone` | The project does **not** use the plugin (agents installed with `install.sh`). The project settings carry the full hook set. |
+| `--git-hooks` | Also turn on the git hooks, by setting `core.hooksPath` — only if the project doesn't already use one, so an existing Husky or Lefthook setup is left alone. |
+
+<details>
+<summary><b>Install by hand instead</b></summary>
+
+```text
+<project>/.claude/settings.json   <- templates/settings.json  (or settings.standalone.json)
+<project>/.claude/hooks/*.sh      <- ../hooks/*.sh            (the plugin's hooks — single source; chmod +x)
+<project>/.mcp.json               <- templates/.mcp.json
+<project>/.claude/rules/*.md      <- templates/rules/*.md
+<project>/.worktreeinclude        <- templates/.worktreeinclude
+<project>/.claude/harness/        <- templates/harness/        (replay_golden.py + cases.example.json)
+<project>/.githooks/              <- templates/githooks/       (enable: git config core.hooksPath .githooks)
 ```
-Pick the mode to match how the project gets the agents:
-- **default — plugin companion** (`settings.json`): the project has the `sdlc-agents` plugin
-  enabled. The plugin already registers the guard, format, SessionStart, and PreCompact
-  hooks, so the project settings carry only what a plugin can't ship — the permissions
-  deny-list and the opt-in Stop test gate. Wiring the same hooks in both places would make
-  each fire twice.
-- **`--standalone`** (`settings.standalone.json`): the project does NOT use the plugin
-  (agents installed with `install.sh`). The project settings carry the full hook set.
 
-Or by hand:
-```
-<project>/.claude/settings.json   <- from templates/settings.json (or settings.standalone.json)
-<project>/.claude/hooks/*.sh      <- from ../hooks/*.sh (the plugin's hooks — single source; chmod +x)
-<project>/.mcp.json               <- from templates/.mcp.json
-<project>/.claude/rules/*.md      <- from templates/rules/*.md
-<project>/.worktreeinclude        <- from templates/.worktreeinclude
-<project>/.claude/harness/        <- from templates/harness/ (replay_golden.py + cases.example.json)
-<project>/.githooks/              <- from templates/githooks/ (enable: git config core.hooksPath .githooks)
-```
+</details>
 
-## Hooks and scripts — stack-aware, not hardcoded
-(The full set below is what `--standalone` installs; in companion mode the plugin provides
-all of it except the Stop gate.)
-The hooks call scripts from the plugin's `hooks/` folder (copied into the project), so the
-same template works for Node, Python, Java, Go, Rust — and for a **polyglot /
-mid-migration tree** (e.g. a Java sidecar beside a new Node service) it checks **all**
-stacks present, not just one.
+---
 
-- **permissions.deny** — blocks `Read` **and `Grep`** on `.env*`, keys, secrets.
-  (`.env.example` stays readable.) Mirrored globally in `~/.claude/settings.json`.
-- **PreToolUse, Edit|Write (fail-closed)** — blocks edits to `.env*` (not `.env.example`),
-  lockfiles, and already-tracked migrations (new migrations are allowed). If `jq` is
-  missing it **blocks** rather than letting edits through.
-- **PreToolUse, Read|Grep → `guard-secrets.sh`** — blocks reading secret files. Works
-  without `jq` (sed fallback), so it neither fails open nor blocks every Read.
-- **PreToolUse, Bash → `guard-bash.sh`** — blocks force-push (`--force-with-lease` is
-  allowed), recursive `rm` on root/home/wildcard targets, DROP/TRUNCATE through a DB client,
-  `dropdb`/`db:drop`/`prisma migrate reset`, and printing secret files or the environment.
-  Fail-open if `jq` is missing.
-- **PostToolUse → `hooks/format.sh`** — formats the written file by extension
-  (prettier · ruff · gofmt · rustfmt · google-java-format). Fail-open, never blocks.
-- **Stop → `hooks/verify.sh`** — detects every stack present and runs each one's
-  typecheck/tests; **blocks completion (exit 2) until green**. Hardened:
-  - **loop-protection** — exits 0 if `stop_hook_active` is already true (no infinite loop);
-  - **no-op skip** — exits 0 when not a git repo or `git status --porcelain` is empty
-    (pure Q&A turns don't trigger the suite).
-- **SessionStart → `session-start.sh`** — injects a one-line snapshot (branch, stacks
-  detected at root and depth-1, Node / `.nvmrc` / `engines.node`, last commit, ledger, and a
-  hint when Java and Node coexist) so `route` can classify the work immediately.
-- **PreCompact** — reminds Claude to flush the migration/upgrade ledger before the context
-  is compacted, so long jobs don't lose decisions.
+## 🔒 Hooks that enforce
 
-Edit `verify.sh` / `format.sh` to match the project's exact commands if the defaults don't
-fit; they're ordinary shell scripts.
+The hooks call scripts from the plugin's `hooks/` folder, so one template works for Node, Python, Java, Go, and Rust — even several side by side in a mid-migration repo. This is the full set `--standalone` installs; in companion mode the plugin provides all of it except the test gate.
 
-## `.mcp.json`
-- **context7** (`@upstash/context7-mcp@4.7.3`) — live library/API docs in context (grounds
-  code-gen in real signatures).
-- **playwright** (`@playwright/mcp@0.0.86`) — real browser for `qa-test-engineer` /
-  `accessibility`.
-Both verified on the npm registry and pinned; bump the versions deliberately.
+| When | Script | What it does | If `jq` is missing |
+|---|---|---|---|
+| Before Edit / Write | `guard-edit.sh` | Blocks edits to `.env*` (not `.env.example`), lockfiles, and existing migrations — new migrations are fine | Still works (sed fallback) |
+| Before Read / Grep | `guard-secrets.sh` | Blocks reading secret files and folders (`.env*`, keys, `~/.ssh`, `~/.aws`, `secrets/`) | Still works (sed fallback) |
+| Before Bash | `guard-bash.sh` | Blocks force-push, recursive `rm` on `/` `~` or wildcards, `DROP`/`TRUNCATE` through a DB client, `dropdb` / `db:drop` / `prisma migrate reset`, and printing secrets or the environment | Lets the command through |
+| After Edit / Write | `format.sh` | Formats the file by type — prettier · ruff · gofmt · rustfmt · google-java-format | Never blocks |
+| Session start | `session-start.sh` | One-line snapshot: branch, detected stacks, Node / `.nvmrc` / `engines.node`, last commit, ledger — and a hint when Java and Node coexist | — |
+| Before compaction | *(inline)* | Reminds Claude to flush the migration/upgrade ledger so long jobs don't lose decisions | — |
+| Turn end *(opt-in)* | `verify.sh` | Runs every detected stack's typecheck and tests and **blocks "done" until green** | — |
 
-## Path-scoped rules (`rules/` → `<project>/.claude/rules/`)
-`typescript.md`, `java.md`, `python.md`, `go.md` — each has a `paths:` frontmatter, so it
-loads only when Claude reads or edits a matching file. In a hybrid Java→Node repo the Java
-rules load for `*.java` and the TS rules for `*.ts`, instead of everything loading always.
-They're a floor, not a style guide: each one defers to an existing project convention.
-Plugins can't ship rules files (only projects and users can), which is why these are
-templates. Delete the ones for stacks the project doesn't use.
+The test gate is hardened two ways. It won't loop: it exits cleanly if it already blocked once (`stop_hook_active`). And it skips turns with no file changes, so a plain question never triggers the test suite.
 
-## Golden-replay harness (`harness/` → `<project>/.claude/harness/`)
-`replay_golden.py` is a dependency-free (Python 3.8+ stdlib) record/replay tool for HTTP APIs,
-so `qa-test-engineer`, `migrate-stack`, and `parity-gate` don't improvise a test runner each
-time:
-```
+The settings also carry a **permissions deny-list** that blocks Read, Grep, and shell access to `.env*`, keys, and `secrets/` (`.env.example` stays readable). It's worth adding the same list to your user-level `~/.claude/settings.json` too, since it's the one guard that's safe in every project.
+
+> [!TIP]
+> If the defaults don't fit a project, edit `verify.sh` and `format.sh`. They're ordinary shell scripts.
+
+> [!WARNING]
+> Hooks run shell commands automatically. Read them before enabling them in a project.
+
+---
+
+## 🔁 Golden-replay harness
+
+`replay_golden.py` (standard library only) records what the **old** system returns and diffs the **new** one against it. That gives `qa-test-engineer`, `migrate-stack`, and `parity-gate` a ready-made parity oracle instead of a test runner improvised each time.
+
+```bash
 python3 .claude/harness/replay_golden.py record --base-url http://localhost:8080 --cases cases.json --out golden.json
 python3 .claude/harness/replay_golden.py replay --base-url http://localhost:8081 --golden golden.json
 ```
-Write the cases (method, path, headers, body) once — see `cases.example.json`. Replay compares
-status, chosen headers, and the body; JSON is compared as parsed values after dropping
-volatile `json_paths` (timestamps, generated ids). A case marked `intended_difference` reports
-INTENDED instead of failing. Exit 0 = all match, 1 = divergence, 2 = unreachable or bad file.
 
-## Git hooks (`githooks/` → `<project>/.githooks/`)
-The one piece of enforcement that works whichever tool made the change — Cursor, Copilot,
-Codex, or a terminal — because git runs it:
-- **pre-commit** refuses secret files (`.env*` except `.env.example`, keys, `secrets/`),
-  edits/deletes/renames of an existing migration (new migrations are fine), and staged
-  private keys or AWS access key ids.
-- **pre-push** refuses a push that would rewrite the remote's history (a force-push).
+- Write the cases once (method, path, headers, body) — see `cases.example.json`.
+- Replay compares **status, chosen headers, and the body**. JSON is compared as parsed values after dropping volatile fields such as timestamps and generated ids.
+- A case marked `intended_difference` reports **INTENDED** instead of failing — that's how approved changes from the ledger stay visible.
 
-`setup-project.sh --git-hooks` turns them on by setting `core.hooksPath` — only if the project
-doesn't already use one (e.g. Husky or Lefthook); otherwise call the two scripts from your
-existing hook setup. Bypass deliberately with `--no-verify`.
+| Exit code | Meaning |
+|---|---|
+| `0` | every case matches (or is intended) |
+| `1` | at least one divergence |
+| `2` | a system couldn't be reached, or a bad cases/golden file |
 
-## Long-running migrations & upgrades — state that survives compaction
-A Java→Node port or a Node 18→22 upgrade across many modules spans days and many context
-compactions. Keep a **living ledger** in the repo so every new session/subagent resumes
-with zero drift:
-- `.claude/state/MIGRATION_STATE.md` (ports) or `.claude/state/UPGRADE_PLAN.md` (runtime
-  upgrades), next to the golden baseline and parity results — update after each
-  module/slice: completed items, target mappings, architectural decisions, known blockers.
-- `migrate-stack` and `upgrade-runtime` maintain it; the PreCompact hook reminds; the
-  SessionStart hook surfaces that it exists.
-- Run risky upgrades and ports in a **worktree session**: start Claude with
-  `claude --worktree <name>`. Everything happens on branch `worktree-<name>` under
-  `.claude/worktrees/`, which you merge normally. `.worktreeinclude` (installed by
-  `setup-project.sh`) copies gitignored files such as `.env` into the worktree so the app
-  and tests run there.
-- Per-agent `isolation: worktree` frontmatter exists, but the docs don't describe how a
-  subagent's worktree changes get back to the parent (or whether plugin agents honor it),
-  so this kit doesn't force it on long-running agents — the session-level worktree is the
-  documented, mergeable path.
+---
 
-## Local overrides (per developer, gitignored)
-- `<project>/CLAUDE.local.md` — personal instructions (not committed).
-- `<project>/.claude/settings.local.json` — personal settings/permissions (not committed).
-Add both to the project's `.gitignore`. (This bundle's own `.gitignore` already ignores
-them if you version-control the folder.)
+## 🪝 Git hooks
 
-## Why these aren't global
-A hook running `pnpm test` would break a Python/Go repo. Enforcement that runs commands
-must match the stack — hence per-repo templates with auto-detecting scripts. Only the
-secrets **deny-list** is safe globally (and it already is).
+The one guardrail that works **whichever tool made the change** — Cursor, Copilot, Codex, or a terminal — because git runs it.
+
+| Hook | Refuses |
+|---|---|
+| **pre-commit** | Secret files (`.env*` except `.env.example`, keys, `secrets/`) · edits, deletes, or renames of an existing migration (new ones are fine) · staged private keys or AWS access key ids |
+| **pre-push** | A push that would rewrite the remote's history — a force-push |
+
+Turn them on with `setup-project.sh --git-hooks`. If the project already uses Husky or Lefthook, call `.githooks/pre-commit` and `.githooks/pre-push` from that setup instead. To bypass deliberately, use `--no-verify`.
+
+---
+
+## 🧭 Path-scoped rules
+
+`typescript.md` · `java.md` · `python.md` · `go.md` — each has a `paths:` frontmatter, so it loads **only when Claude reads or edits a matching file**. In a hybrid Java → Node repo, the Java rules apply to `*.java` and the TS rules to `*.ts`, instead of everything loading all the time.
+
+They're a minimum standard, not a style guide: each one defers to the project's existing conventions. Delete the ones for stacks you don't use. *(Plugins can't ship rules files — only projects and users can — which is why these are templates.)*
+
+---
+
+## 🔌 MCP servers
+
+| Server | Version | What it's for |
+|---|---|---|
+| **context7** | `@upstash/context7-mcp@4.7.3` | Live, version-correct library docs — code-gen works from real signatures, not memory |
+| **playwright** | `@playwright/mcp@0.0.86` | A real browser, for `qa-test-engineer` and `accessibility` checks |
+
+Both are pinned and verified on npm. Bump the versions deliberately.
+
+---
+
+## 🧠 Long-running migrations & upgrades
+
+A Java → Node port or a Node 18 → 22 upgrade can span days and many context compactions. A **living ledger** in the repo lets every new session resume with zero drift:
+
+- **The ledger** — `.claude/state/MIGRATION_STATE.md` (ports) or `.claude/state/UPGRADE_PLAN.md` (upgrades), next to the golden baseline and parity results. `migrate-stack` and `upgrade-runtime` keep it current; the pre-compact hook reminds; the session-start hook shows that it exists. Reference skeletons live in `state/`.
+- **Run it in a worktree session** — start Claude with `claude --worktree <name>`. Everything lands on branch `worktree-<name>`, which you merge normally, and `.worktreeinclude` brings in `.env` and similar files so the app and tests run there.
+
+<details>
+<summary><b>Why not per-agent worktree isolation?</b></summary>
+
+Agents can declare `isolation: worktree`, but the docs don't describe how a subagent's worktree changes get back to the parent, or whether plugin agents honor it. So this kit doesn't force it on long-running agents — the session-level worktree is the documented path, and its result is a branch you merge normally.
+
+</details>
+
+---
+
+## 🏠 Local overrides
+
+Per-developer files that should **never** be committed:
+
+- `<project>/CLAUDE.local.md` — personal instructions
+- `<project>/.claude/settings.local.json` — personal settings and permissions
+
+Add both to the project's `.gitignore`.
+
+---
+
+## ❓ Why per-project, not global
+
+A hook that runs `pnpm test` would break a Python or Go repo. Anything that runs commands has to match the stack, so it lives in each repo, driven by scripts that detect the stack. The one piece that's safe everywhere is the secrets **deny-list**, which is worth adding to your user-level settings as well.
+
+---
+
+<div align="center">
+
+Part of [**sdlc-agents**](../README.md) · MIT licensed
+
+</div>

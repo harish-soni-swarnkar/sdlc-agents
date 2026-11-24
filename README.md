@@ -7,18 +7,18 @@
 Design → build → review → ship → document. New projects, existing code, cross-stack migrations, and runtime upgrades.
 
 [![CI](https://github.com/harish-soni-swarnkar/sdlc-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/harish-soni-swarnkar/sdlc-agents/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2E7D32)](LICENSE)
-[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757?logo=claude&logoColor=white)](#-quick-start)
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-portable%20edition-1A73E8)](portable/README.md)
-![Agents](https://img.shields.io/badge/agents-29-555555)
-![Gates](https://img.shields.io/badge/review%20gates-6-555555)
+[![License: MIT](.github/assets/badges/license.svg)](LICENSE)
+[![Claude Code plugin](.github/assets/badges/claude-code-plugin.svg)](#-quick-start)
+[![Agent Skills](.github/assets/badges/agent-skills.svg)](portable/README.md)
+![Agents](.github/assets/badges/agents.svg)
+![Gates](.github/assets/badges/gates.svg)
 
 **Portable edition for:**
-![Codex](https://img.shields.io/badge/OpenAI%20Codex-412991?logo=openai&logoColor=white)
-![Cursor](https://img.shields.io/badge/Cursor-000000?logo=cursor&logoColor=white)
-![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-24292F?logo=githubcopilot&logoColor=white)
-![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-8E75B2?logo=googlegemini&logoColor=white)
-![and more](https://img.shields.io/badge/+%20other%20Agent%20Skills%20tools-555555)
+![Codex](.github/assets/badges/codex.svg)
+![Cursor](.github/assets/badges/cursor.svg)
+![GitHub Copilot](.github/assets/badges/github-copilot.svg)
+![Gemini CLI](.github/assets/badges/gemini-cli.svg)
+![and more](.github/assets/badges/more-tools.svg)
 
 [Quick start](#-quick-start) · [How it works](#-how-it-works) · [The crew](#-the-crew) · [Gates](#-review-gates) · [Guardrails](#-guardrails-that-actually-enforce) · [Portable edition](#-portable-edition)
 
@@ -224,9 +224,9 @@ Generated from the Claude Code agents by `portable/build.py`, so the two edition
 
 ## 🧪 Quality & status
 
-**Tested:** 79 hook guard cases · 13 git-hook cases against scratch repos (including a real force-push to a local remote) · an end-to-end replay-harness test against two local servers · strict-YAML checks on all 72 frontmatter blocks · a spec validator for the portable edition (proven to catch a deliberately broken copy) · `claude plugin validate . --strict` in CI.
+**Tested:** 79 hook guard cases · 13 git-hook cases against scratch repos (including a real force-push to a local remote) · an end-to-end replay-harness test against two local servers · strict-YAML checks on all 72 frontmatter blocks · a spec validator for the portable edition (proven to catch a deliberately broken copy) · the official `skills-ref` Agent Skills validator and `claude plugin validate . --strict`, both passing in CI.
 
-**Honest caveats:** the official `skills-ref` validator runs in CI but its first run from source is still pending. One agent (`senior-auditor`) has been smoke-tested end-to-end on a real repo; the other 28 are authored and structurally validated but not each run live. The hooks and slash commands haven't been exercised in a live Claude Code session yet.
+**Honest caveats:** one agent (`senior-auditor`) has been smoke-tested end-to-end on a real repo; the other 28 are authored and structurally validated but not each run live. The hooks and slash commands haven't been exercised in a live Claude Code session yet.
 
 <details>
 <summary><b>More detail — model routing, coverage map, how it's built</b></summary>

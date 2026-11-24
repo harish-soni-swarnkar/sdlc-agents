@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build a distributable zip of the kit — only from a clean, committed, checked tree.
 #   ./release.sh                  hook tests + `claude plugin validate . --strict`, then package
-#   ./release.sh --skip-validate  allow packaging when the claude CLI isn't available (says so)
+#   ./release.sh --skip-validate  allow packaging when neither claude nor npx is available (says so)
 #
 # The zip is built with `git archive` from HEAD, so only tracked, committed files ship —
 # never local files like CLAUDE.local.md, .claude/settings.local.json, or stray artifacts.
@@ -40,11 +40,13 @@ python3 portable/validate.py
 echo "== plugin validation =="
 if command -v claude >/dev/null 2>&1; then
   claude plugin validate . --strict
+elif command -v npx >/dev/null 2>&1; then
+  npx --yes @anthropic-ai/claude-code plugin validate . --strict
 elif [ "$skip_validate" -eq 1 ]; then
-  echo "WARNING: claude CLI not on PATH — packaging WITHOUT plugin validation (--skip-validate)." >&2
+  echo "WARNING: no claude CLI or npx — packaging WITHOUT plugin validation (--skip-validate)." >&2
 else
-  echo "error: claude CLI not on PATH, so the plugin can't be validated." >&2
-  echo "       Install it, or re-run with --skip-validate to package anyway." >&2
+  echo "error: neither the claude CLI nor npx is available, so the plugin can't be validated." >&2
+  echo "       Install one, or re-run with --skip-validate to package anyway." >&2
   exit 1
 fi
 
