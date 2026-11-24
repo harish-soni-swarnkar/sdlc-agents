@@ -57,6 +57,15 @@ for name in names:
     if fm is None:
         err(name, "no frontmatter")
         continue
+    # skills-ref finds the frontmatter by splitting on the first two "---" anywhere in the
+    # file, then parses it with strictyaml. Make sure that split lands on the real frontmatter
+    # and that it holds no escaped quotes.
+    real = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
+    split_fm = text.split("---", 2)[1].strip("\n") if text.count("---") >= 2 else ""
+    if not real or split_fm != real.group(1):
+        err(name, "a '---' inside the frontmatter would truncate it for skills-ref")
+    if "\\\"" in split_fm:
+        err(name, "frontmatter contains an escaped quote (risky for strict parsers like skills-ref)")
     extra = set(fm) - ALLOWED_KEYS
     if extra:
         err(name, f"non-standard frontmatter keys: {sorted(extra)}")

@@ -1,6 +1,6 @@
 ---
 name: fix-loop
-description: "Closed-loop remediation — runs review-gate, has senior-builder apply the fixes, then re-runs the gate, repeating until it passes or a bound is hit. Turns \"here's what's wrong\" into \"it's fixed and re-verified.\" Write-capable."
+description: "Closed-loop remediation — runs review-gate, has senior-builder apply the fixes, then re-runs the gate, repeating until it passes or a bound is hit. Takes findings all the way to fixed and re-verified. Write-capable."
 license: MIT
 compatibility: "Agent Skills open standard (agentskills.io). Part of the sdlc-agents portable set: install the whole set, since skills refer to each other by name. Uses git and the project's own build/test tooling."
 metadata:

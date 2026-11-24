@@ -34,13 +34,12 @@ local servers (pass / fail / intended / unreachable), and the git hooks pass 13 
 against scratch repos, including a real force-push to a local remote. One agent (`senior-auditor`) was smoke-tested end-to-end on a
 real repo.
 
-**Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
-in CI) — the CLI wasn't available where this was built. `.github/workflows/ci.yml` runs the
-syntax checks, strict-YAML frontmatter, the hook tests, the portable edition checks, the
-official `skills-ref` validator, and the plugin validator on every push, but hasn't run on
-GitHub yet (the `skills-ref` and plugin-validate jobs install their tools from PyPI/npm and
-are unverified there); exercise the hooks and the
-slash-command skills inside a real Claude Code session. The other 28 agents are authored and structurally validated but not each run live.
+**Verified in CI (GitHub Actions):** `claude plugin validate . --strict` passes, and so do
+the syntax, strict-YAML, hook, git-hook, harness, and portable checks.
+
+**Not yet done — do before relying on it:** confirm the official `skills-ref` job passes on
+GitHub (it now installs the validator from source; that hasn't run yet); exercise the hooks
+and the slash-command skills inside a real Claude Code session. The other 28 agents are authored and structurally validated but not each run live.
 The verify/format scripts are stack-detecting defaults — adapt the commands per project.
 
 ## Install

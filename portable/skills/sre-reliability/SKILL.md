@@ -1,6 +1,6 @@
 ---
 name: sre-reliability
-description: "Production-readiness and operability — observability, deployment/IaC, scaling, SLOs, runbooks, incident/rollback readiness. Assesses \"can this run reliably in production?\" and produces the ops artifacts. Review + ops authoring; changes app code only when asked."
+description: "Production-readiness and operability — observability, deployment/IaC, scaling, SLOs, runbooks, incident/rollback readiness. Assesses whether it can run reliably in production and produces the ops artifacts. Review + ops authoring; changes app code only when asked."
 license: MIT
 compatibility: "Agent Skills open standard (agentskills.io). Part of the sdlc-agents portable set: install the whole set, since skills refer to each other by name. Uses git and the project's own build/test tooling."
 metadata:
