@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# sdlc-agents git hook — the installers refresh files that carry this line, and leave others alone.
 # Push-time safety net: refuses a push that would rewrite the remote's history (a
 # force-push), whichever tool started it. Normal fast-forward pushes, new branches, and
 # branch deletions pass. Bypass deliberately with `git push --no-verify`.

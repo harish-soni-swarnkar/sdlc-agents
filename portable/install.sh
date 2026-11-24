@@ -71,8 +71,14 @@ if [ "$global" -eq 0 ]; then
     cp "$SRC/AGENTS.md" "$DEST/AGENTS.md"; echo "installed AGENTS.md → $DEST"
   fi
   mkdir -p "$DEST/.githooks"
-  for h in "$SRC"/githooks/*; do cp "$h" "$DEST/.githooks/" && chmod +x "$DEST/.githooks/$(basename "$h")"; done
-  echo "installed .githooks/{pre-commit,pre-push} — commit/push safety that works in every tool"
+  for h in "$SRC"/githooks/*; do
+    hb=$(basename "$h")
+    if [ -e "$DEST/.githooks/$hb" ] && ! grep -q '^# sdlc-agents git hook' "$DEST/.githooks/$hb"; then
+      echo "note: .githooks/$hb exists and isn't from this kit — left it."
+    else
+      cp "$h" "$DEST/.githooks/" && chmod +x "$DEST/.githooks/$hb" && echo "installed .githooks/$hb"
+    fi
+  done
   if [ "$githooks" -eq 1 ]; then
     if ! git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       echo "note: $DEST isn't a git repo — git hooks copied but not enabled."

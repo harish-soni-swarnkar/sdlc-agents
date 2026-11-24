@@ -2,7 +2,7 @@
 
 # 🧰 Per-project kit
 
-**Deterministic guardrails and tooling for any repo — one command, nothing overwritten.**
+**Deterministic guardrails and tooling for any repo — one command, your existing config left alone.**
 
 Hooks that *enforce* · a golden-replay parity harness · git hooks for every tool · path-scoped rules · pinned MCP servers
 
@@ -29,7 +29,7 @@ Agent instructions are *advisory*. Everything here is *deterministic*: Claude Co
 | Piece | What it does | Works in |
 |---|---|---|
 | 🔒 **Hooks & settings** | Block secret reads, force-push, destructive commands, edits to existing migrations; auto-format; optional "tests must pass" gate | Claude Code |
-| 🔁 **Golden-replay harness** | Record an HTTP API's responses, replay them against the new system, diff — the parity oracle for ports and upgrades | Anywhere (Python 3.8+) |
+| 🔁 **Golden-replay harness** | Record an HTTP API's responses, replay them against the new system, diff — the parity oracle for ports and upgrades | Anywhere (Python 3, standard library) |
 | 🪝 **Git hooks** | Refuse committing secrets or keys, editing an existing migration, and force-pushing | **Any tool** — git runs them |
 | 🧭 **Path-scoped rules** | TS/JS, Java, Python, Go conventions that load only for matching files | Claude Code |
 | 🔌 **`.mcp.json`** | Pinned context7 (live library docs) + Playwright (real browser checks) | Claude Code |
@@ -45,7 +45,7 @@ From the project root (or pass its path):
 /path/to/sdlc-agents/templates/setup-project.sh [--standalone] [--git-hooks] [project-dir]
 ```
 
-It copies the files and makes the scripts executable. It **never overwrites** an existing `settings.json`, `.mcp.json`, rules file, or `.worktreeinclude`, and it refuses a destination that doesn't exist.
+It copies the files and makes the scripts executable. It **never overwrites** an existing `settings.json`, `.mcp.json`, rules file, or `.worktreeinclude`, or a git hook that isn't from this kit, and it refuses a destination that doesn't exist. Its own scripts — the hook scripts, the harness, and its git hooks — are refreshed on every run.
 
 | Option | Use it when |
 |---|---|
@@ -82,11 +82,11 @@ The hooks call scripts from the plugin's `hooks/` folder, so one template works 
 | After Edit / Write | `format.sh` | Formats the file by type — prettier · ruff · gofmt · rustfmt · google-java-format | Never blocks |
 | Session start | `session-start.sh` | One-line snapshot: branch, detected stacks, Node / `.nvmrc` / `engines.node`, last commit, ledger — and a hint when Java and Node coexist | — |
 | Before compaction | *(inline)* | Reminds Claude to flush the migration/upgrade ledger so long jobs don't lose decisions | — |
-| Turn end *(opt-in)* | `verify.sh` | Runs every detected stack's typecheck and tests and **blocks "done" until green** | — |
+| Turn end *(opt-in)* | `verify.sh` | Runs every detected stack's checks — typecheck and tests for Node; ruff, mypy, and pytest for Python; Maven or Gradle tests; gofmt and `go test`; `cargo test` — and **blocks "done" until green** | — |
 
-The test gate is hardened two ways. It won't loop: it exits cleanly if it already blocked once (`stop_hook_active`). And it skips turns with no file changes, so a plain question never triggers the test suite.
+The test gate is hardened two ways. It won't loop: it exits cleanly if it already blocked once (`stop_hook_active`). And it skips when the working tree is clean (or the folder isn't a git repo), so a plain question doesn't trigger the test suite.
 
-The settings also carry a **permissions deny-list** that blocks Read, Grep, and shell access to `.env*`, keys, and `secrets/` (`.env.example` stays readable). It's worth adding the same list to your user-level `~/.claude/settings.json` too, since it's the one guard that's safe in every project.
+The settings also carry a **permissions deny-list** that blocks Read, Grep, and common shell reads (`cat`, `head`, `tail`, `printenv`…) of `.env*`, keys, and `secrets/` (`.env.example` stays readable). It's worth adding the same list to your user-level `~/.claude/settings.json` too, since it's the one guard that's safe in every project.
 
 > [!TIP]
 > If the defaults don't fit a project, edit `verify.sh` and `format.sh`. They're ordinary shell scripts.

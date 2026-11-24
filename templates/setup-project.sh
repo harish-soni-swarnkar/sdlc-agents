@@ -85,9 +85,13 @@ echo "installed .claude/harness/replay_golden.py (+ cases.example.json)"
 # Git hooks: commit/push safety that works whichever tool made the change.
 mkdir -p "$DEST/.githooks"
 for h in "$SRC"/githooks/*; do
-  cp "$h" "$DEST/.githooks/" && chmod +x "$DEST/.githooks/$(basename "$h")"
+  hb=$(basename "$h")
+  if [ -e "$DEST/.githooks/$hb" ] && ! grep -q '^# sdlc-agents git hook' "$DEST/.githooks/$hb"; then
+    echo "note: .githooks/$hb exists and isn't from this kit — left it."
+  else
+    cp "$h" "$DEST/.githooks/" && chmod +x "$DEST/.githooks/$hb" && echo "installed .githooks/$hb"
+  fi
 done
-echo "installed .githooks/{pre-commit,pre-push}"
 if [ "$githooks" -eq 1 ]; then
   if ! git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "note: $DEST isn't a git repo — git hooks copied but not enabled."

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# sdlc-agents git hook — the installers refresh files that carry this line, and leave others alone.
 # Commit-time safety net that works whichever tool made the change (Cursor, Copilot, Codex,
 # a terminal): refuses to commit secret files, edits/deletes/renames of an existing
 # migration (new migrations are fine), and staged private keys or AWS access key ids.

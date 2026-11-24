@@ -2,8 +2,8 @@
 """Golden-master record/replay for HTTP APIs — a language-neutral parity oracle.
 
 Record what the OLD system returns, then replay the same requests against the NEW system
-and diff. Standard library only, so it runs anywhere Python 3.8+ does, whatever stack the
-two systems are written in.
+and diff. Standard library only (tested on Python 3.12+), whatever stack the two systems
+are written in.
 
     replay_golden.py record --base-url http://localhost:8080 --cases cases.json --out golden.json
     replay_golden.py replay --base-url http://localhost:8081 --golden golden.json

@@ -2,7 +2,7 @@
 
 # 🤖 sdlc-agents
 
-**A full software-delivery crew for Claude Code — 29 specialist agents, 6 review gates, one quality bar.**
+**A full software-delivery crew for Claude Code — 29 agents, 6 review gates, one quality bar.**
 
 Design → build → review → ship → document. New projects, existing code, cross-stack migrations, and runtime upgrades.
 
@@ -28,10 +28,10 @@ Design → build → review → ship → document. New projects, existing code, 
 
 ## ✨ Why sdlc-agents
 
-- **🎯 One quality bar, everywhere** — every agent verifies by running, cites evidence (`file:line`, a repro, a number), and refuses to hallucinate, overcommit, or bypass a failing check.
-- **🚦 Gates, not hope** — six read-only review gates merge several expert lenses into one verdict. A gate can't edit your code, so it can't quietly make itself pass.
-- **🧭 All four lifecycles** — new projects, changes to existing code, cross-stack migrations (e.g. Java → Node) with *proven* behavioral parity, and runtime upgrades (e.g. Node 18 → 22).
-- **🛡️ Enforced, not just advised** — hooks block secret reads, force-pushes, destructive commands, and edits to existing migrations. Git hooks carry that safety into any tool.
+- **🎯 One quality bar, everywhere** — every agent is instructed to verify by running, cite evidence (`file:line`, a repro, a number), and never hallucinate, overcommit, or bypass a failing check.
+- **🚦 Gates, not hope** — six review gates merge several expert lenses into one verdict. Gates get no file-editing tools — only shell access, to run tests and linters — and are instructed never to change code.
+- **🧭 All four lifecycles** — new projects, changes to existing code, cross-stack migrations (e.g. Java → Node) with behavioral parity checked against a golden test suite, and runtime upgrades (e.g. Node 18 → 22).
+- **🛡️ Enforced, not just advised** — hooks block secret reads, force-pushes, destructive commands, and edits to existing migrations. Git hooks enforce the commit- and push-time checks in any tool.
 - **🌍 Two editions, one source** — a native Claude Code plugin, plus a portable set of 30 standard SKILL.md skills for Codex, Cursor, Copilot, Gemini CLI and more — generated from the same agents.
 
 ---
@@ -46,7 +46,10 @@ Design → build → review → ship → document. New projects, existing code, 
 ```
 
 Update later with `/plugin marketplace update sdlc-agents`. To try it without installing:
-`claude --plugin-dir ./sdlc-agents` (one session only).
+`claude --plugin-dir ./sdlc-agents` (one session only). Uninstall: `claude plugin uninstall sdlc-agents@sdlc-agents`.
+
+> [!NOTE]
+> The hooks need **`jq`**. Without it, the shell-command guard lets commands through and auto-format is skipped (the secret and edit guards still work).
 
 **Claude Code — manual install** *(solo, no plugin)*
 
@@ -80,7 +83,9 @@ flowchart LR
     R -->|stack port| MS["migrate-stack"]
     R -->|runtime upgrade| UR["upgrade-runtime"]
     MS --> P{{"parity-gate"}}
-    UR --> P
+    UR --> PU{{"parity-gate"}}
+    PU --> RD["release-devops — CI & Docker"]
+    RD --> S
     SI --> G{{"review gates"}}
     FD --> G
     P --> G
@@ -89,7 +94,7 @@ flowchart LR
     FL --> G
 ```
 
-**Gates are read-only; pipelines and loops write.** That separation is the point — reviewers can't change what they review.
+**Gates review; pipelines and loops write.** Gates and the two code reviewers get no file-editing tools (they keep shell access only to run tests and linters), which keeps reviewing and changing code separate.
 
 ---
 
@@ -125,8 +130,8 @@ flowchart LR
 
 | Agent | What it does |
 |---|---|
-| **senior-auditor** | Code-quality, design, and SDLC review — strictly read-only |
-| **security-reviewer** | STRIDE, OWASP, authz, secrets, supply chain (CVEs, licenses) — strictly read-only |
+| **senior-auditor** | Code-quality, design, and SDLC review — no file-editing tools |
+| **security-reviewer** | STRIDE, OWASP, authz, secrets, supply chain (CVEs, licenses) — no file-editing tools |
 | **qa-test-engineer** | Adversarial testing: edge cases, concurrency, crash/resume, golden baselines |
 | **performance-engineer** | Latency, bottlenecks, memory leaks, N+1 — measures before optimizing |
 | **accessibility** | WCAG 2.2 AA: keyboard, screen reader, contrast, focus, motion |
@@ -157,7 +162,7 @@ flowchart LR
 
 ## 🚦 Review gates
 
-Read-only, each with one verdict. Pick by weight — **`route` does this for you**: a small change gets the fast lane, anything touching auth, data, APIs, infra, or a release gets the full pipeline.
+No file-editing tools; each gives one verdict. Pick by weight — **`route` does this for you**: a small change gets the fast lane, anything touching auth, data, APIs, infra, or a release gets the full pipeline.
 
 | Gate | Lenses | Verdict |
 |---|---|---|
@@ -178,7 +183,7 @@ Prompts are advisory. These run whether or not the model "remembers":
 |---|---|---|
 | **Plugin hooks** | reading or printing secrets · force-push · recursive `rm` on `/` or `~` · `DROP`/`TRUNCATE` · editing an existing migration or lockfile | Claude Code |
 | **Git hooks** | committing secret files or keys · editing an existing migration · force-push | **Any tool** — git runs them |
-| **Permissions deny-list** *(recommended)* | Read/Grep/shell access to `.env*`, keys, `secrets/` | Claude Code |
+| **Permissions deny-list** *(recommended)* | Read, Grep, and common shell reads (`cat`, `head`, `printenv`…) of `.env*`, keys, `secrets/` | Claude Code |
 
 Plus a stack-aware `verify.sh` (Node, Python, Java, Go, Rust — even side by side mid-migration) that can block "done" until tests pass, and a session-start snapshot that spots a Java + Node repo as a likely migration. Details: [`templates/README.md`](templates/README.md).
 
@@ -186,12 +191,12 @@ Plus a stack-aware `verify.sh` (Node, Python, Java, Go, Rust — even side by si
 
 ## 🧠 The standing bar
 
-Every agent holds the same line:
+Every agent is held to the same line:
 
 - ✅ **Verify by running** — claim only what was executed; paste real output
 - 🚫 **No hallucination · no overcommit · no bypassing** — fix root causes, never stub or loosen a check to look green
 - 📎 **Evidence** — `file:line`, a repro, or a number, with a confidence tag
-- 🩺 **Baseline first** — check the untouched build and tests *before* changing anything, so old failures are never blamed on new code
+- 🩺 **Baseline first** — agents that change existing code check the untouched build and tests *before* changing anything, so old failures are never blamed on new code
 - ✋ **Ask before anything irreversible**
 
 And three code-generation rules for **every language**: **context anchoring** (verify every API exists before using it), **strict typing** at every boundary, and **test-first** verification.
@@ -226,7 +231,7 @@ Generated from the Claude Code agents by `portable/build.py`, so the two edition
 
 **Tested:** 79 hook guard cases · 13 git-hook cases against scratch repos (including a real force-push to a local remote) · an end-to-end replay-harness test against two local servers · strict-YAML checks on all 72 frontmatter blocks · a spec validator for the portable edition (proven to catch a deliberately broken copy) · the official `skills-ref` Agent Skills validator and `claude plugin validate . --strict`, both passing in CI.
 
-**Honest caveats:** one agent (`senior-auditor`) has been smoke-tested end-to-end on a real repo; the other 28 are authored and structurally validated but not each run live. The hooks and slash commands haven't been exercised in a live Claude Code session yet.
+**Honest caveats:** one agent (`senior-auditor`) has been smoke-tested end-to-end on a real repo; the other 28 are authored and structurally validated but not each run live. The hooks and slash commands haven't been exercised in a live Claude Code session yet, the plugin's marketplace install hasn't been run end to end by a user, and the portable skills haven't been tried live in Codex, Cursor, or Copilot.
 
 <details>
 <summary><b>More detail — model routing, coverage map, how it's built</b></summary>
@@ -262,16 +267,19 @@ Each agent pins a model so behavior is predictable regardless of the session def
 | Path | What's there |
 |---|---|
 | `agents/` | the 29 agents — the single source of truth |
+| `.claude-plugin/` | the plugin manifest (`plugin.json`) and the marketplace manifest that makes it installable |
 | `skills/` | 8 plugin slash commands + the `engineering-rules` skill |
 | `hooks/` | plugin hooks (`hooks.json`) and their scripts |
 | `templates/` | the per-project kit: settings, harness, git hooks, rules, ledger skeletons |
 | `portable/` | the generated cross-tool edition (`build.py`, `validate.py`, `install.sh`) |
 | `global/CLAUDE.md` | the always-on rules `install.sh` deploys to `~/.claude/CLAUDE.md` |
 | `tests/` | hook, git-hook, harness, and frontmatter tests (all run in CI) |
+| `.github/` | the CI workflow and the badge images |
+| `install.sh` · `release.sh` | manual install into `~/.claude/agents/` · a checked, clean-tree release zip |
 
 ### Releasing
 
-`./release.sh` builds a zip from a clean, committed tree only — after the hook, git-hook, harness, frontmatter, and portable checks, and `claude plugin validate . --strict` (it refuses without the CLI unless you pass `--skip-validate`). It packages with `git archive`, so local files never leak.
+`./release.sh` builds a zip from a clean, committed tree only — after the hook, git-hook, harness, frontmatter, and portable checks, and `claude plugin validate . --strict` (through the `claude` CLI, or `npx` if it isn't installed; it refuses only when neither is available, unless you pass `--skip-validate`). It packages with `git archive`, so local files never leak.
 
 </details>
 

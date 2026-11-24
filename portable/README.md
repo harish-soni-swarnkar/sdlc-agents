@@ -2,7 +2,7 @@
 
 # 🌍 sdlc-agents — portable edition
 
-**The same 29-specialist SDLC crew, as open-standard Agent Skills — for any AI coding tool.**
+**The same 29-agent SDLC crew, as open-standard Agent Skills — for any AI coding tool.**
 
 30 SKILL.md skills · an always-on `AGENTS.md` · git hooks that enforce · a golden-replay parity harness
 
@@ -23,10 +23,10 @@
 
 ---
 
-Built on **Agent Skills** — the open SKILL.md standard ([agentskills.io](https://agentskills.io)) — so it runs in Codex, Cursor, GitHub Copilot, Gemini CLI, Antigravity, OpenCode, Goose, Amp, Kiro, Claude Code, and the rest of the ~46 tools listed there. Every skill passes the **official `skills-ref` validator** in CI.
+Built on **Agent Skills** — the open SKILL.md standard ([agentskills.io](https://agentskills.io)) — the format Codex, Cursor, GitHub Copilot, Gemini CLI, Antigravity, OpenCode, Goose, Amp, Kiro, Claude Code, and the rest of the ~46 tools listed there all load. Every skill passes the **official `skills-ref` validator** in CI; it hasn't yet been tried live in each tool.
 
 > [!TIP]
-> On **Claude Code**, use the [plugin edition](../README.md) instead — it adds isolated contexts, hard read-only permissions, per-agent models, and hooks that enforce. This edition is for every other tool, and for teams that mix tools.
+> On **Claude Code**, use the [plugin edition](../README.md) instead — it adds isolated contexts, no file-editing tools for gates and reviewers, per-agent models, and hooks that enforce. This edition is for every other tool, and for teams that mix tools.
 
 ---
 
@@ -55,7 +55,7 @@ npx skills add harish-soni-swarnkar/sdlc-agents/portable
 | `github` | `.github/skills` · `~/.copilot/skills` | GitHub Copilot in VS Code |
 | `claude` | `.claude/skills` · `~/.claude/skills` | Claude Code — though there, the plugin edition is better |
 
-It refreshes skills it installed before and **never overwrites** a same-named skill from anywhere else. Project installs also copy `AGENTS.md` to the project root (unless one exists) and the git hooks to `.githooks/` — add `--git-hooks` to turn them on.
+It refreshes skills it installed before and **never overwrites** a same-named skill from anywhere else. Project installs also copy `AGENTS.md` to the project root (unless one exists) and the git hooks to `.githooks/` (leaving alone any git hook that isn't from this kit) — add `--git-hooks` to turn them on.
 
 ### 📜 Always-on rules: `AGENTS.md`
 
@@ -102,7 +102,7 @@ Same instructions. These Claude Code mechanisms have no portable equivalent, so 
 |---|---|
 | Each agent runs in its own isolated context | Skills share the conversation's context |
 | Gates hand work to separate lens agents | One agent applies each lens skill in turn, as distinct passes |
-| Read-only gates and reviewers have no edit tools | "Review-only" is an instruction, not a permission |
+| Gates and reviewers get no file-editing tools | "Review-only" is an instruction, not a permission |
 | Per-agent model (`opus` / `sonnet`) and effort | Whatever model the tool is running |
 | Hooks *enforce* the safety rules | `AGENTS.md` *states* them; the optional **git hooks** *enforce* the commit- and push-time ones — secrets, existing migrations, force-push |
 | Isolated contexts keep long pipelines manageable | Long orchestrators (`migrate-stack`, `upgrade-runtime`, `ship-it`, `takehome-runner`) stop at each ledger or phase boundary, commit, and continue in a fresh conversation |
@@ -116,7 +116,7 @@ Both editions keep migration and upgrade ledgers in the same place (`.claude/sta
 
 | Tool | Where | What it does |
 |---|---|---|
-| 🔁 **Golden-replay harness** | `parity-gate` and `qa-test-engineer` skills (`scripts/replay_golden.py`, example cases in `assets/`) | Records an HTTP API's responses from the old system, replays them against the new one, and diffs — volatile fields ignored, approved changes marked INTENDED. Python 3.8+ standard library only. |
+| 🔁 **Golden-replay harness** | `parity-gate` and `qa-test-engineer` skills (`scripts/replay_golden.py`, example cases in `assets/`) | Records an HTTP API's responses from the old system, replays them against the new one, and diffs — volatile fields ignored, approved changes marked INTENDED. Python 3, standard library only. |
 | 🪝 **Git hooks** | `githooks/` | **pre-commit** refuses secret files, edits to existing migrations, and staged keys; **pre-push** refuses force-pushes. Git runs them whichever tool made the change. |
 
 ---
