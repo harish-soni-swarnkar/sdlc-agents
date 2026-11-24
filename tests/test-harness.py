@@ -106,24 +106,28 @@ with tempfile.TemporaryDirectory() as tmp:
 
     code, out = run("record", "--base-url", src_url, "--cases", str(cases), "--out", str(golden))
     check(code == 0, f"record exit {code}\n{out}")
-    check(json.loads(golden.read_text())["cases"][3]["expected"]["status"] == 404,
-          "record must keep error responses (404)")
+    if code != 0 or not golden.exists():
+        # Without a golden file every replay check is meaningless — report, don't crash.
+        check(False, "record produced no golden file, so the replay checks were skipped")
+    else:
+        check(json.loads(golden.read_text())["cases"][3]["expected"]["status"] == 404,
+              "record must keep error responses (404)")
 
-    code, out = run("replay", "--base-url", tgt_url, "--golden", str(golden))
-    got = labels(out)
-    check(code == 1, f"replay vs a divergent target must exit 1, got {code}")
-    expected = {"users": "PASS", "text": "PASS", "price": "FAIL", "echo": "FAIL",
-                "ctype": "FAIL", "missing": "INTENDED"}
-    check(got == expected, f"replay vs target outcomes:\n  expected {expected}\n  got      {got}\n{out}")
-    check("status 201 → 500" in out, "status divergence must be reported")
-    check("header content-type" in out, "header divergence must be reported")
+        code, out = run("replay", "--base-url", tgt_url, "--golden", str(golden))
+        got = labels(out)
+        check(code == 1, f"replay vs a divergent target must exit 1, got {code}")
+        expected = {"users": "PASS", "text": "PASS", "price": "FAIL", "echo": "FAIL",
+                    "ctype": "FAIL", "missing": "INTENDED"}
+        check(got == expected, f"replay vs target outcomes:\n  expected {expected}\n  got      {got}\n{out}")
+        check("status 201 → 500" in out, "status divergence must be reported")
+        check("header content-type" in out, "header divergence must be reported")
 
-    code, out = run("replay", "--base-url", src_url, "--golden", str(golden))
-    check(code == 0, f"replay vs the source itself must exit 0 (volatile fields ignored), got {code}\n{out}")
-    check(set(labels(out).values()) == {"PASS"}, f"replay vs source must be all PASS:\n{out}")
+        code, out = run("replay", "--base-url", src_url, "--golden", str(golden))
+        check(code == 0, f"replay vs the source itself must exit 0 (volatile fields ignored), got {code}\n{out}")
+        check(set(labels(out).values()) == {"PASS"}, f"replay vs source must be all PASS:\n{out}")
 
-    code, out = run("replay", "--base-url", "http://127.0.0.1:9", "--golden", str(golden))
-    check(code == 2, f"unreachable system must exit 2, got {code}")
+        code, out = run("replay", "--base-url", "http://127.0.0.1:9", "--golden", str(golden))
+        check(code == 2, f"unreachable system must exit 2, got {code}")
 
 src.shutdown()
 tgt.shutdown()
