@@ -1,7 +1,7 @@
 ---
 name: migrate
-description: Port a system to another language or stack (Java→Node, Python→Go, …) with proven behavioral parity — golden baseline first, strangler-fig port, parity gate before cutover.
-argument-hint: <source path/stack> to <target stack> [intended differences]
+description: "Port a system to another language or stack (Java→Node, Python→Go, …) with proven behavioral parity — golden baseline first, strangler-fig port, parity gate before cutover."
+argument-hint: "<source path/stack> to <target stack> [intended differences]"
 disable-model-invocation: true
 ---
 Migration: $ARGUMENTS

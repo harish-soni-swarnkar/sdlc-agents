@@ -1,7 +1,7 @@
 ---
 name: feature
-description: Add a feature or make a change on an existing codebase — map it if unfamiliar, smallest idiomatic diff with tests, then a quick gate.
-argument-hint: <the change, and optionally the repo path>
+description: "Add a feature or make a change on an existing codebase — map it if unfamiliar, smallest idiomatic diff with tests, then a quick gate."
+argument-hint: "<the change, and optionally the repo path>"
 disable-model-invocation: true
 ---
 Change: $ARGUMENTS

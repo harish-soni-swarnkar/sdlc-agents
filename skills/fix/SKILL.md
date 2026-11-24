@@ -1,7 +1,7 @@
 ---
 name: fix
-description: Diagnose and fix a bug, crash, flaky test, or incident at its root cause, with a regression test, then a quick gate.
-argument-hint: <symptom, error, failing test, or incident notes>
+description: "Diagnose and fix a bug, crash, flaky test, or incident at its root cause, with a regression test, then a quick gate."
+argument-hint: "<symptom, error, failing test, or incident notes>"
 disable-model-invocation: true
 ---
 Symptom: $ARGUMENTS

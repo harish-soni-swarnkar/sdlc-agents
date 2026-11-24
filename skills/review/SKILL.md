@@ -1,7 +1,7 @@
 ---
 name: review
-description: Full three-lens review (quality, security, adversarial QA) with one merged verdict; optionally fix the findings and re-verify.
-argument-hint: [target — path, branch, PR, or diff; defaults to the current changes]
+description: "Full three-lens review (quality, security, adversarial QA) with one merged verdict; optionally fix the findings and re-verify."
+argument-hint: "[target — path, branch, PR, or diff; defaults to the current changes]"
 disable-model-invocation: true
 ---
 Target: $ARGUMENTS (if empty, review the current branch's changes)

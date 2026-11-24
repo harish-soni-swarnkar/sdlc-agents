@@ -1,6 +1,6 @@
 ---
 name: engineering-rules
-description: Global engineering discipline for writing or changing code in ANY language — context anchoring (verify every API/type/symbol exists before using it; no hallucinated signatures), strict typing at boundaries, and test-first verification. Apply whenever generating, editing, refactoring, migrating, or reviewing code.
+description: "Global engineering discipline for writing or changing code in ANY language — context anchoring (verify every API/type/symbol exists before using it; no hallucinated signatures), strict typing at boundaries, and test-first verification. Apply whenever generating, editing, refactoring, migrating, or reviewing code."
 ---
 # Engineering rules (all languages)
 

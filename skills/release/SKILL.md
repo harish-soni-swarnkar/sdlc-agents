@@ -1,7 +1,7 @@
 ---
 name: release
-description: Pre-release production gate — full battery of lenses plus proof that tests, coverage, scans, and CI actually pass, as one READY / NOT-READY verdict.
-argument-hint: [target] [context: public/internal, SLA, load, data sensitivity]
+description: "Pre-release production gate — full battery of lenses plus proof that tests, coverage, scans, and CI actually pass, as one READY / NOT-READY verdict."
+argument-hint: "[target] [context: public/internal, SLA, load, data sensitivity]"
 disable-model-invocation: true
 ---
 Release: $ARGUMENTS

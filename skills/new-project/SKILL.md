@@ -1,7 +1,7 @@
 ---
 name: new-project
-description: Build a new project from a brief — design, build, three-lens review, ops readiness, docs. Uses takehome-runner for graded exercises, ship-it otherwise.
-argument-hint: <brief, or path to the brief/exercise>
+description: "Build a new project from a brief — design, build, three-lens review, ops readiness, docs. Uses takehome-runner for graded exercises, ship-it otherwise."
+argument-hint: "<brief, or path to the brief/exercise>"
 disable-model-invocation: true
 ---
 Brief: $ARGUMENTS

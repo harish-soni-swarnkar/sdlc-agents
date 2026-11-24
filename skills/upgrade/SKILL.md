@@ -1,7 +1,7 @@
 ---
 name: upgrade
-description: Upgrade a major runtime or platform version (Node 18→22, JDK 8→17, Python major) — baseline, bump, codemods, deprecation sweep, parity proof, CI/Docker alignment.
-argument-hint: <target version, e.g. "Node 22"> [repo path]
+description: "Upgrade a major runtime or platform version (Node 18→22, JDK 8→17, Python major) — baseline, bump, codemods, deprecation sweep, parity proof, CI/Docker alignment."
+argument-hint: "<target version, e.g. \"Node 22\"> [repo path]"
 disable-model-invocation: true
 ---
 Upgrade: $ARGUMENTS

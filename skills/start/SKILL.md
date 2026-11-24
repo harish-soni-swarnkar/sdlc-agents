@@ -1,7 +1,7 @@
 ---
 name: start
-description: Entry point. Describe any task; the route agent picks the right agents and order, then the sequence runs from the main conversation on your go.
-argument-hint: <describe the task, optionally a repo path>
+description: "Entry point. Describe any task; the route agent picks the right agents and order, then the sequence runs from the main conversation on your go."
+argument-hint: "<describe the task, optionally a repo path>"
 disable-model-invocation: true
 ---
 Task: $ARGUMENTS
