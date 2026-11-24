@@ -6,7 +6,7 @@
 
 Design → build → review → ship → document. New projects, existing code, cross-stack migrations, and runtime upgrades.
 
-[![CI](https://github.com/harish-soni-swarnkar/sdlc-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/harish-soni-swarnkar/sdlc-agents/actions/workflows/ci.yml)
+
 [![License: MIT](.github/assets/badges/license.svg)](LICENSE)
 [![Claude Code plugin](.github/assets/badges/claude-code-plugin.svg)](#-quick-start)
 [![Agent Skills](.github/assets/badges/agent-skills.svg)](portable/README.md)
