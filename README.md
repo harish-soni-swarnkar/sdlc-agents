@@ -206,7 +206,7 @@ The same crew as **30 standard SKILL.md skills** ([agentskills.io](https://agent
 npx skills add harish-soni-swarnkar/sdlc-agents/portable
 ```
 
-Generated from the Claude Code agents by `portable/build.py`, so the two editions never drift. Includes a golden-replay harness for parity work and git hooks for enforcement. See [what's different](portable/README.md#whats-different-from-the-claude-code-edition) and the [full guide](portable/README.md).
+Generated from the Claude Code agents by `portable/build.py`, so the two editions never drift. Includes a golden-replay harness for parity work and git hooks for enforcement. See [what's different](portable/README.md#-whats-different-from-the-claude-code-edition) and the [full guide](portable/README.md).
 
 ---
 
