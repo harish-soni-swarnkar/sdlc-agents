@@ -8,3 +8,7 @@ Claude-Agents.zip
 
 # OS / editor noise
 .DS_Store
+
+# Python bytecode (created by running/compiling the scripts)
+__pycache__/
+*.pyc

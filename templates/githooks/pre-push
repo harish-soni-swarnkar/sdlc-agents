@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Push-time safety net: refuses a push that would rewrite the remote's history (a
+# force-push), whichever tool started it. Normal fast-forward pushes, new branches, and
+# branch deletions pass. Bypass deliberately with `git push --no-verify`.
+allzero() { case "$1" in *[!0]*) return 1 ;; *) return 0 ;; esac; }
+while read -r local_ref local_sha remote_ref remote_sha; do
+  allzero "$local_sha" && continue    # deleting a remote branch
+  allzero "$remote_sha" && continue   # creating a new remote branch
+  if ! git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    echo "pre-push: $remote_ref has commits you haven't fetched — run 'git fetch' first (pushing now would need a force)." >&2
+    exit 1
+  fi
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+    echo "pre-push: pushing to $remote_ref would rewrite its history (a force-push) — refused." >&2
+    echo "          If you really mean it, use --force-with-lease together with --no-verify." >&2
+    exit 1
+  fi
+done
+exit 0

@@ -29,6 +29,10 @@ echo "== hook tests =="
 echo "== frontmatter (strict YAML) =="
 ./tests/test-frontmatter.sh
 
+echo "== git hooks + golden-replay harness =="
+./tests/test-githooks.sh
+python3 tests/test-harness.py
+
 echo "== portable edition =="
 python3 portable/build.py --check
 python3 portable/validate.py

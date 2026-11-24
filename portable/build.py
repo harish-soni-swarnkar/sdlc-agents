@@ -157,6 +157,41 @@ REWRITES = {
     ],
 }
 
+HARNESS_SRC = ("the golden-replay harness at `.claude/harness/replay_golden.py` "
+               "(installed by `setup-project.sh`)")
+# The harness travels inside these skills (spec folders scripts/ and assets/).
+BUNDLES_HARNESS = {"parity-gate", "qa-test-engineer"}
+HARNESS_HERE = ("the golden-replay harness bundled with this skill (`scripts/replay_golden.py`; "
+                "example cases in `assets/cases.example.json`)")
+HARNESS_THERE = ("the golden-replay harness bundled with the `parity-gate` skill (its "
+                 "`scripts/replay_golden.py`)")
+
+# Single-conversation tools: long pipelines must stop at boundaries and resume fresh.
+LEDGER_SPLIT = """SESSIONS IN A SINGLE-CONVERSATION TOOL
+Here every stage runs in one conversation, so diffs, logs, and test output pile up until the
+earliest context — these rules, the baseline — gets compacted away. Don't run this end to
+end in one chat. Stop at each ledger boundary, commit, and continue in a fresh conversation
+that starts by reading the ledger in `.claude/state/`:
+1. Baseline health + golden/characterization baseline → ledger → commit.
+2. Target design (or the upgrade audit and plan) → ledger → commit.
+3. One slice (or one upgrade stage) per session → ledger → commit.
+4. Parity and gates → verdicts in the ledger → commit.
+At each boundary, tell the user what's done and the exact prompt the next session should
+start with.
+
+"""
+PHASE_SPLIT = """SESSIONS IN A SINGLE-CONVERSATION TOOL
+Here every phase runs in one conversation, so a full build piles up until the brief and the
+design get compacted away. Don't run the whole pipeline in one chat. Stop after each phase,
+commit, and start the next phase in a fresh conversation that reads the design doc, the
+README, and `git log` first: design → build (one or two slices per session) → review → ops
+readiness → docs. At each boundary, tell the user what's done and the exact prompt the next
+session should start with.
+
+"""
+SESSION_SPLIT = {"migrate-stack": LEDGER_SPLIT, "upgrade-runtime": LEDGER_SPLIT,
+                 "ship-it": PHASE_SPLIT, "takehome-runner": PHASE_SPLIT}
+
 SKILL_REWRITES = {
     "engineering-rules": [(
         "(In non-plugin installs these same\nrules live always-on in `~/.claude/CLAUDE.md`; here they ship as a skill.)",
@@ -226,7 +261,16 @@ def build(dest):
             joined = apply_exact(desc + "\n\x00\n" + body, REWRITES[name], name)
             desc, body = joined.split("\n\x00\n", 1)
         desc, body = generic(desc, names, name), generic(body, names, name)
+        if HARNESS_SRC in body:
+            body = body.replace(HARNESS_SRC, HARNESS_HERE if name in BUNDLES_HARNESS else HARNESS_THERE)
+        if name in SESSION_SPLIT:
+            body = apply_exact(body, [("HARD RULES\n", SESSION_SPLIT[name] + "HARD RULES\n")], name)
         (skills / name).mkdir()
+        if name in BUNDLES_HARNESS:
+            (skills / name / "scripts").mkdir()
+            (skills / name / "assets").mkdir()
+            shutil.copy2(ROOT / "templates" / "harness" / "replay_golden.py", skills / name / "scripts")
+            shutil.copy2(ROOT / "templates" / "harness" / "cases.example.json", skills / name / "assets")
         (skills / name / "SKILL.md").write_text(
             skill_file(name, desc, body, f"agents/{name}.md"), encoding="utf-8")
 
@@ -247,6 +291,9 @@ def build(dest):
         "with the `route` skill if you're unsure which skill fits a task).")], "AGENTS.md")
     (dest / "AGENTS.md").write_text(
         rules.rstrip("\n") + "\n\n" + SAFETY, encoding="utf-8")
+
+    # Git hooks: the one piece of enforcement that works in every tool.
+    shutil.copytree(ROOT / "templates" / "githooks", dest / "githooks")
 
 
 SAFETY = """## Safety rules (always)
@@ -291,6 +338,9 @@ def main():
             shutil.rmtree(OUT / "skills")
         shutil.copytree(fresh / "skills", OUT / "skills")
         shutil.copy2(fresh / "AGENTS.md", OUT / "AGENTS.md")
+        if (OUT / "githooks").exists():
+            shutil.rmtree(OUT / "githooks")
+        shutil.copytree(fresh / "githooks", OUT / "githooks")
         print(f"built {len(list((OUT / 'skills').iterdir()))} skills + AGENTS.md into portable/")
 
 

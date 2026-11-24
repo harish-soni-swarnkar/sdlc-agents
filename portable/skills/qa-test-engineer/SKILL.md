@@ -26,7 +26,9 @@ THE STANCE
   existing system's current behavior as golden-master / characterization tests — black-box
   where possible (recorded request→response, CLI in→out, snapshots, DB state transitions) —
   so parity-gate has a deterministic oracle. Lock behavior down BEFORE it changes; thin or
-  stale coverage on a legacy system is exactly when this matters most.
+  stale coverage on a legacy system is exactly when this matters most. For HTTP APIs, use
+  the golden-replay harness bundled with this skill (`scripts/replay_golden.py`; example cases in `assets/cases.example.json`) — its record
+  mode captures request→response fixtures from the running system.
 
 PROCEDURE
 1. Understand intended behavior and the contract (brief/requirements/acceptance

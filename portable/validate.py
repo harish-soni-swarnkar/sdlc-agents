@@ -83,6 +83,18 @@ for name in names:
     for ref in set(re.findall(r"`([a-z0-9-]+)` skill", body)):
         if ref not in names:
             err(name, f"refers to a `{ref}` skill that isn't in the set")
+    # Extra files may only live in the spec's optional folders.
+    for f in (SKILLS / name).rglob("*"):
+        rel = f.relative_to(SKILLS / name)
+        if f.is_file() and rel.parts[0] not in ("SKILL.md", "scripts", "references", "assets"):
+            err(name, f"unexpected file {rel} (only scripts/, references/, assets/ allowed)")
+    # Every bundled file a skill mentions must exist — in its own folder, or in the folder of
+    # a skill named on the same line ("bundled with the `parity-gate` skill (its scripts/...)").
+    for line in body.splitlines():
+        for ref in re.findall(r"`((?:scripts|references|assets)/[^`;\s)]+)`", line):
+            homes = [name] + re.findall(r"`([a-z0-9-]+)` skill", line)
+            if not any((SKILLS / h / ref).is_file() for h in homes):
+                err(name, f"mentions {ref} but it isn't bundled with {' or '.join(homes)}")
 
 route = (SKILLS / "route" / "SKILL.md").read_text(encoding="utf-8")
 for n in names:

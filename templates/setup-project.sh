@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install the per-project deterministic layer into an existing project.
-#   ./setup-project.sh [--standalone] [/path/to/project]      (default path: current dir)
+#   ./setup-project.sh [--standalone] [--git-hooks] [/path/to/project]   (default: current dir)
 #
 # Default — plugin companion: for projects where the sdlc-agents plugin is enabled. The
 # plugin already registers the guard / format / SessionStart / PreCompact hooks, so the
@@ -10,16 +10,20 @@
 # --standalone: for projects NOT using the plugin (manual install.sh). Installs the full
 # hook set into the project settings instead.
 #
+# --git-hooks: also turn on the commit/push safety hooks it installs into .githooks/ (sets
+# core.hooksPath, only if the project doesn't already use one — e.g. Husky or Lefthook).
+#
 # Never clobbers an existing settings.json, .mcp.json, rules file, or .worktreeinclude.
-# Hook scripts are always refreshed and made executable.
+# Hook scripts, git hooks, and the golden-replay harness are our code: always refreshed.
 set -euo pipefail
 shopt -s nullglob
 
-mode=companion; DEST=""
+mode=companion; DEST=""; githooks=0
 for arg in "$@"; do
   case "$arg" in
     --standalone) mode=standalone ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    --git-hooks) githooks=1 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     -*) echo "error: unknown option '$arg' (see --help)" >&2; exit 1 ;;
     *) DEST="$arg" ;;
   esac
@@ -69,6 +73,32 @@ if [ -f "$DEST/.worktreeinclude" ]; then
   echo "note: .worktreeinclude exists — left it; merge from $SRC/.worktreeinclude if wanted."
 else
   cp "$SRC/.worktreeinclude" "$DEST/.worktreeinclude"; echo "installed .worktreeinclude"
+fi
+
+# Golden-replay harness for parity work (record/replay HTTP APIs) — our code, refreshed.
+mkdir -p "$DEST/.claude/harness"
+cp "$SRC/harness/replay_golden.py" "$DEST/.claude/harness/replay_golden.py"
+chmod +x "$DEST/.claude/harness/replay_golden.py"
+cp "$SRC/harness/cases.example.json" "$DEST/.claude/harness/cases.example.json"
+echo "installed .claude/harness/replay_golden.py (+ cases.example.json)"
+
+# Git hooks: commit/push safety that works whichever tool made the change.
+mkdir -p "$DEST/.githooks"
+for h in "$SRC"/githooks/*; do
+  cp "$h" "$DEST/.githooks/" && chmod +x "$DEST/.githooks/$(basename "$h")"
+done
+echo "installed .githooks/{pre-commit,pre-push}"
+if [ "$githooks" -eq 1 ]; then
+  if ! git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "note: $DEST isn't a git repo — git hooks copied but not enabled."
+  elif current=$(git -C "$DEST" config core.hooksPath) && [ -n "$current" ]; then
+    echo "note: core.hooksPath is already '$current' — left it. Call .githooks/pre-commit and"
+    echo "      .githooks/pre-push from your existing hook setup to add these checks."
+  else
+    git -C "$DEST" config core.hooksPath .githooks && echo "enabled git hooks (core.hooksPath=.githooks)"
+  fi
+else
+  echo "git hooks not enabled — re-run with --git-hooks, or: git -C \"$DEST\" config core.hooksPath .githooks"
 fi
 
 echo ""

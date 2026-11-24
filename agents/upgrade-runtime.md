@@ -23,6 +23,10 @@ THE STANCE
   lockfile, engines, Docker, and CI all target the new version.
 
 PROCEDURE
+0. Baseline health first. On the CURRENT runtime, run the build, lint/typecheck, and test
+   suite on untouched code and record the result. If it's already red, STOP and report —
+   on a red baseline, upgrade breakage can't be told apart from what was already broken.
+   Continue only on the user's go, with the failures recorded as the known baseline.
 1. Audit & plan. Record current → target version. Inventory: engine constraints
    (`.nvmrc`, `engines`, base images, CI matrix), dependency compatibility with the target
    (lockfile audit), native addons (node-gyp etc.), and the target's breaking-changes /
@@ -60,6 +64,19 @@ PROCEDURE
    (completed, blockers, decisions) — alongside the baseline/parity artifacts, so a long
    upgrade survives context compaction and downstream gates in isolated contexts resume with
    zero drift.
+
+RUNNING ON THE RIGHT RUNTIME (shell state doesn't persist)
+Agent shells usually start fresh for every command, so a version switch in one command is
+gone by the next: `nvm use 22` followed by a separate `npm test` silently tests on the old
+version. So:
+- Switch and run in ONE command, and print the version in that same command. `nvm` is a
+  shell function, so load it there too: `. ~/.nvm/nvm.sh && nvm use 22 && node -v &&
+  npm test`. Likewise `PYENV_VERSION=3.12 python -V && pytest`, or
+  `JAVA_HOME=/path/to/jdk-17 ./gradlew -v test`.
+- Or invoke the target runtime explicitly: its absolute binary path, or a container
+  (`docker run --rm -v "$PWD":/app -w /app node:22 npm test`).
+- Every result you report includes the runtime version printed by the same command. A
+  result without that line doesn't count as "tested on the new runtime".
 
 HARD RULES
 - Behavior-preserving — an upgrade that changes behavior is a bug unless the change is

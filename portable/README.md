@@ -22,9 +22,12 @@ npx skills add harish-soni-swarnkar/sdlc-agents/portable
 > folder first — those are the Claude Code edition's workflow skills, which depend on
 > Claude Code subagents and won't work elsewhere.
 
+`npx skills` installs the skills only. For the always-on rules and the git hooks, also
+run `install.sh` (below) or copy `AGENTS.md` and `githooks/` yourself.
+
 **Without Node — `install.sh`:**
 ```bash
-./portable/install.sh [--target agents|github|claude|all] [--global] [project-dir]
+./portable/install.sh [--target agents|github|claude|all] [--global] [--git-hooks] [project-dir]
 ```
 
 | Target | Folder (project · `--global`) | Read by |
@@ -63,13 +66,21 @@ Same instructions, but these Claude Code mechanisms have no portable equivalent:
 | Gates hand work to separate lens agents | One agent applies each lens skill in turn, as distinct passes |
 | Read-only gates/reviewers have no edit tools | "Review-only" is an instruction, not a permission |
 | Per-agent model (`opus` / `sonnet`) and effort | Whatever model the tool is running |
-| Hooks *enforce* the safety rules (secrets, force-push, destructive commands, immutable migrations) | `AGENTS.md` *states* them as rules — advisory only |
+| Hooks *enforce* the safety rules (secrets, force-push, destructive commands, immutable migrations) | `AGENTS.md` *states* them; the optional **git hooks** (`githooks/`, `install.sh --git-hooks`) *enforce* the commit- and push-time ones — secrets, existing migrations, force-push |
+| Each agent's isolated context keeps long pipelines manageable | Long orchestrators (`migrate-stack`, `upgrade-runtime`, `ship-it`, `takehome-runner`) tell the model to stop at ledger/phase boundaries, commit, and continue in a fresh conversation |
 | `/sdlc-agents:<name>` workflow commands | Folded into the orchestrator skills themselves |
 
 If you use Claude Code, the [plugin edition](../README.md) is the stronger choice; this
 edition is for every other tool, and for mixed teams. Both editions keep migration and
 upgrade ledgers in the same place (`.claude/state/`), so a team mixing tools shares one
 ledger.
+
+## Bundled tools
+- `parity-gate` and `qa-test-engineer` carry the **golden-replay harness**
+  (`scripts/replay_golden.py`, example cases in `assets/`): record an HTTP API's responses
+  from the old system, replay against the new one, diff. Python 3.8+ stdlib only.
+- `githooks/` — **pre-commit** (secret files, edits to existing migrations, staged keys) and
+  **pre-push** (force-push). Git runs them whichever tool made the change.
 
 ## How it's built
 `agents/*.md` (the Claude Code edition) is the single source of truth. `build.py` converts

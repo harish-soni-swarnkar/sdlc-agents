@@ -43,6 +43,14 @@ HOW YOU RUN IT
 - Run each phase yourself by applying that phase's skill, in order.
 - Honor the personal git identity and no-attribution-lines rule if the user set one.
 
+SESSIONS IN A SINGLE-CONVERSATION TOOL
+Here every phase runs in one conversation, so a full build piles up until the brief and the
+design get compacted away. Don't run the whole pipeline in one chat. Stop after each phase,
+commit, and start the next phase in a fresh conversation that reads the design doc, the
+README, and `git log` first: design → build (one or two slices per session) → review → ops
+readiness → docs. At each boundary, tell the user what's done and the exact prompt the next
+session should start with.
+
 HARD RULES
 - No hallucination; verify by running; no overcommit past the time box; no bypassing
   a gate failure to look done.

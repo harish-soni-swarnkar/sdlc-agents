@@ -33,6 +33,10 @@ INPUTS YOU NEED
 PROCEDURE
 1. Confirm scope: the two sides, how each is run/exercised, and the intended-differences
    list.
+   For HTTP APIs, use the golden-replay harness at `.claude/harness/replay_golden.py` (installed by `setup-project.sh`):
+   `record` against the old side, `replay` against the new side. When both sides must run
+   at once, give them separate ports, start them in the background with logs and PIDs,
+   wait for a health check, and stop them by PID afterwards.
 2. Establish the baseline: run the golden suite against the OLD/SOURCE side (or load its
    recorded fixtures if the old side can't run) and capture expected outputs.
 3. Run the same suite against the NEW/TARGET side; capture actual outputs. Paste real

@@ -22,13 +22,17 @@ make the target pass the same tests. The languages are an implementation detail;
 observable contract is the invariant.
 
 PROCEDURE
+0. Baseline health first. Run the SOURCE system's build and existing tests and record the
+   result. If it's red, STOP and report — golden tests captured from a broken system lock
+   its bugs in. Continue only on the user's go.
 1. Understand the source + define parity. Map the source system's behavior, public
    surface (APIs, CLIs, jobs, events), data model, and dependencies. For an unfamiliar or
    legacy source with no ARCHITECTURE.md inventory yet, run `onboard` first to produce one
    (skip it when an inventory already exists). Decide what
    "equivalent" means: exact parity, or deliberate changes — and list the intended
    differences explicitly (nothing changes silently).
-2. Capture a golden/characterization test suite (apply the `qa-test-engineer` skill). Make it
+2. Capture a golden/characterization test suite (apply the `qa-test-engineer` skill; for HTTP
+   APIs use the golden-replay harness bundled with the `parity-gate` skill (its `scripts/replay_golden.py`)). Make it
    **black-box and language-neutral** wherever possible — drive the real interface and
    record expected outputs: HTTP request→response fixtures, CLI in→out, message in→out,
    DB state transitions, sample I/O. These are the contract the target must satisfy; they
@@ -67,8 +71,24 @@ LANGUAGE-AGNOSTIC NOTES
 - Watch the cross-language footguns and record how each is handled: numeric precision &
   integer width, date/time & timezones, string encoding/collation, null/undefined/empty
   semantics, error/exception models, concurrency model, ordering guarantees, floating-
-  point rounding, default charset, 0- vs 1-based conventions.
+  point rounding, default charset, 0- vs 1-based conventions, the ORM's table/column
+  naming strategy, timestamp precision (nanoseconds vs milliseconds), and 64-bit integers
+  that JavaScript's Number can't hold (above 2^53 − 1). data-engineer's cross-stack data
+  traps cover the data layer in detail.
 - Honor the source↔target data types exactly at the data layer (apply the `data-engineer` skill); a silent type coercion is a parity bug.
+
+RUNNING BOTH SIDES AT ONCE (to record and diff)
+- Check both toolchains exist first (e.g. `java -version && mvn -v`, `node -v && npm -v`);
+  if one is missing, say so instead of half-running the comparison.
+- Give each side its own port and state which (e.g. source on 8080, target on 8081), set
+  through config/env (e.g. `SERVER_PORT`, `PORT`) — never by editing the source system.
+- Servers block the terminal: start each in the background with its output in a log file
+  and its PID saved (`nohup <start command> > "${TMPDIR:-/tmp}/source.log" 2>&1 & echo $! >
+  "${TMPDIR:-/tmp}/source.pid"`), wait for a health check with a timeout before sending
+  traffic, and stop both by PID when done.
+- If running both live isn't possible, record the source's responses once and replay the
+  recordings against the target — parity-gate accepts recorded fixtures as the baseline
+  and says so.
 
 HOW YOU RUN IT
 - Apply the phase skills yourself, in order: `qa-test-engineer` (golden tests),
@@ -78,6 +98,18 @@ HOW YOU RUN IT
 - Honor the AI code-gen discipline for the TARGET language: verify real APIs/signatures
   in the target stack (don't invent them), strict typing, test-first (the golden tests
   already lead).
+
+SESSIONS IN A SINGLE-CONVERSATION TOOL
+Here every stage runs in one conversation, so diffs, logs, and test output pile up until the
+earliest context — these rules, the baseline — gets compacted away. Don't run this end to
+end in one chat. Stop at each ledger boundary, commit, and continue in a fresh conversation
+that starts by reading the ledger in `.claude/state/`:
+1. Baseline health + golden/characterization baseline → ledger → commit.
+2. Target design (or the upgrade audit and plan) → ledger → commit.
+3. One slice (or one upgrade stage) per session → ledger → commit.
+4. Parity and gates → verdicts in the ledger → commit.
+At each boundary, tell the user what's done and the exact prompt the next session should
+start with.
 
 HARD RULES
 - Parity is proven, not assumed — a slice is "done" only when its golden tests pass

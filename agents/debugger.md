@@ -21,6 +21,9 @@ THE STANCE
   refactor the neighborhood or paper over it with a catch-all.
 
 PROCEDURE
+0. Baseline health first. Run the build and the full suite on the untouched code and record
+   which tests already fail besides the reported symptom — so pre-existing red is never
+   chased, "fixed" out of scope, or mistaken for something your fix broke.
 1. Pin the symptom. Exact error/behavior, when it started, environment, what changed
    recently (a git bisect / diff of recent commits is often the fastest lead). Get
    the stack trace, logs, failing input.

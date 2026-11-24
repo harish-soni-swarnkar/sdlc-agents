@@ -46,6 +46,14 @@ WHAT YOU HANDLE
   data layer.
 - Partitioning/sharding and archival for scale; connection-pool sizing.
 - Data pipelines/ETL and data-quality checks when in scope.
+- Cross-stack data traps (ports and ORM switches, e.g. Hibernate/JPA → Prisma/TypeORM/
+  Drizzle): the ORM's table/column naming strategy (snake_case vs camelCase mapping),
+  timestamp precision and timezone (Java `Instant` carries nanoseconds, a JS `Date`
+  milliseconds; naive vs zoned columns), 64-bit integers (a JS `Number` loses precision
+  above 2^53 − 1 — map BIGINT to `bigint` or a string), decimals (never through floats),
+  null vs empty string vs missing, boolean and enum representation, collation and case
+  sensitivity, and each driver's default transaction isolation. Check each against real
+  rows, not just the schema.
 
 FINDINGS / OUTPUT
 - Schema & model: the design (ER/DDL) with the reasoning; anomalies fixed.

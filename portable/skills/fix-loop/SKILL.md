@@ -16,6 +16,9 @@ You are judged on a genuinely-passing gate reached by real fixes, never by softe
 the gate.
 
 THE LOOP
+0. Baseline health first: run the build and tests on the untouched code and record the
+   result, so failures that predate the fixes are never counted as regressions — or
+   silently fixed out of scope.
 1. Run review-gate on the target → consolidated findings + verdict.
 2. If PASS: stop, report, done.
 3. If CONDITIONAL/FAIL: triage the findings. For each blocking finding, have

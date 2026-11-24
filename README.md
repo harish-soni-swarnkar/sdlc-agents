@@ -29,7 +29,9 @@ delegation uses the current `Agent` tool name; `route` references every agent; t
 packages exist on npm and are pinned (`@upstash/context7-mcp@4.7.3`,
 `@playwright/mcp@0.0.86`). The portable edition passes its own spec validator (which a
 deliberately broken copy was shown to fail), its build is reproducible, and its installer
-was tested in every mode. One agent (`senior-auditor`) was smoke-tested end-to-end on a
+was tested in every mode. The golden-replay harness passes an end-to-end test against two
+local servers (pass / fail / intended / unreachable), and the git hooks pass 13 cases
+against scratch repos, including a real force-push to a local remote. One agent (`senior-auditor`) was smoke-tested end-to-end on a
 real repo.
 
 **Not yet done — do before relying on it:** run `claude plugin validate .` (and `--strict`
@@ -322,6 +324,11 @@ Markdown agents are *advisory*; these layers are *deterministic* / infrastructur
       and a hint when Java and Node coexist); PreCompact (flush-the-ledger reminder).
   - `rules/` — path-scoped rules (TS/JS, Java, Python, Go) that load only for matching
     files, so a hybrid Java→Node repo gets the right conventions per file.
+  - `harness/` — `replay_golden.py`, a stdlib-only record/replay tool for HTTP APIs: the
+    ready-made parity oracle `qa-test-engineer`, `migrate-stack`, and `parity-gate` use.
+  - `githooks/` — pre-commit (secret files, edits to existing migrations, staged keys) and
+    pre-push (force-push). Git runs them whichever tool made the change;
+    `setup-project.sh --git-hooks` turns them on without overriding Husky/Lefthook.
   - `.worktreeinclude` — copies `.env`-style gitignored files into a
     `claude --worktree <name>` session, the recommended way to run a port or upgrade off
     the main tree.

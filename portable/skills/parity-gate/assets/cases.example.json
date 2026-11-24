@@ -1,0 +1,24 @@
+{
+  "ignore": {
+    "headers": ["date", "x-request-id"],
+    "json_paths": ["createdAt", "items[*].id", "meta.generatedAt"]
+  },
+  "compare_headers": ["content-type"],
+  "cases": [
+    { "name": "health", "method": "GET", "path": "/health" },
+    { "name": "list users", "method": "GET", "path": "/users?limit=2" },
+    {
+      "name": "create user",
+      "method": "POST",
+      "path": "/users",
+      "headers": { "content-type": "application/json" },
+      "body": { "name": "Ada Lovelace", "email": "ada@example.com" }
+    },
+    {
+      "name": "unknown user",
+      "method": "GET",
+      "path": "/users/does-not-exist",
+      "intended_difference": "404 body changes to RFC 7807 problem+json — approved in .claude/state/MIGRATION_STATE.md"
+    }
+  ]
+}

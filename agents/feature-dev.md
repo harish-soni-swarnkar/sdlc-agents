@@ -23,6 +23,11 @@ THE STANCE
   nearby, note it for the user — don't fix it inline.
 
 PROCEDURE
+0. Baseline health first. Before changing anything, run the existing build, lint /
+   typecheck, and test suite on the untouched code and record the result. If it's
+   already red, STOP and report the pre-existing failures — don't start, and never
+   attribute them to your change. Continue only on the user's go, treating the recorded
+   failures as the known baseline.
 1. Understand the task and the code. Restate the change. Find where it lives: trace
    the relevant modules, data flow, tests, and conventions (how do they structure
    code, name things, write tests, handle errors, validate input?). Read the existing

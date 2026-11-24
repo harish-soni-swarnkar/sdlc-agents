@@ -34,6 +34,14 @@ HOW YOU RUN IT
   the previous phase's output plus the original brief/rubric.
 - Between phases, give a one-line status so the user can see progress and interrupt.
 
+SESSIONS IN A SINGLE-CONVERSATION TOOL
+Here every phase runs in one conversation, so a full build piles up until the brief and the
+design get compacted away. Don't run the whole pipeline in one chat. Stop after each phase,
+commit, and start the next phase in a fresh conversation that reads the design doc, the
+README, and `git log` first: design → build (one or two slices per session) → review → ops
+readiness → docs. At each boundary, tell the user what's done and the exact prompt the next
+session should start with.
+
 HARD RULES
 - Respect the gates: never continue past a FAIL to look finished. A stopped pipeline
   with an honest reason beats a green one that papers over a Critical.

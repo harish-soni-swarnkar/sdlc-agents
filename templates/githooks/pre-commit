@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Commit-time safety net that works whichever tool made the change (Cursor, Copilot, Codex,
+# a terminal): refuses to commit secret files, edits/deletes/renames of an existing
+# migration (new migrations are fine), and staged private keys or AWS access key ids.
+# Bypass deliberately with `git commit --no-verify`.
+set -o pipefail
+fail=0
+block() { echo "pre-commit: $1" >&2; fail=1; }
+
+while IFS=$'\t' read -r status path newpath; do
+  case "$status" in D*) ;; *) target="${newpath:-$path}"
+    case "$target" in
+      *.env.example|*.env.sample|*.env.template) ;;
+      .env|*/.env|.env.*|*/.env.*|*.pem|*.key|*.p12|*.keystore|*id_rsa|*id_ed25519|secrets/*|*/secrets/*)
+        block "refusing to commit secrets file '$target'" ;;
+    esac ;;
+  esac
+  case "$path" in
+    migrations/*|*/migrations/*)
+      case "$status" in A*|C*) ;; *) block "'$path' is an existing migration ($status) — migrations are immutable; add a new one instead" ;; esac ;;
+  esac
+done < <(git diff --cached --name-status -M)
+
+added=$(git diff --cached -U0 --no-color | grep -E '^\+[^+]' || true)
+if printf '%s\n' "$added" | grep -Eq -- '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----'; then
+  block "a private key is in the staged changes"
+fi
+if printf '%s\n' "$added" | grep -Eq 'AKIA[0-9A-Z]{16}'; then
+  block "an AWS access key id is in the staged changes"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: commit refused. Fix the above, or bypass deliberately with --no-verify." >&2
+  exit 1
+fi
+exit 0

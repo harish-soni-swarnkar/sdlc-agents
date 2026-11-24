@@ -13,7 +13,7 @@ One command (from the project root, or pass its path). It copies the files, make
 executable, never overwrites an existing `settings.json` / `.mcp.json` / rules file /
 `.worktreeinclude`, and refuses a destination that doesn't exist:
 ```
-/path/to/Claude-Agents/templates/setup-project.sh [--standalone] [project-dir]
+/path/to/Claude-Agents/templates/setup-project.sh [--standalone] [--git-hooks] [project-dir]
 ```
 Pick the mode to match how the project gets the agents:
 - **default — plugin companion** (`settings.json`): the project has the `sdlc-agents` plugin
@@ -31,6 +31,8 @@ Or by hand:
 <project>/.mcp.json               <- from templates/.mcp.json
 <project>/.claude/rules/*.md      <- from templates/rules/*.md
 <project>/.worktreeinclude        <- from templates/.worktreeinclude
+<project>/.claude/harness/        <- from templates/harness/ (replay_golden.py + cases.example.json)
+<project>/.githooks/              <- from templates/githooks/ (enable: git config core.hooksPath .githooks)
 ```
 
 ## Hooks and scripts — stack-aware, not hardcoded
@@ -82,6 +84,31 @@ rules load for `*.java` and the TS rules for `*.ts`, instead of everything loadi
 They're a floor, not a style guide: each one defers to an existing project convention.
 Plugins can't ship rules files (only projects and users can), which is why these are
 templates. Delete the ones for stacks the project doesn't use.
+
+## Golden-replay harness (`harness/` → `<project>/.claude/harness/`)
+`replay_golden.py` is a dependency-free (Python 3.8+ stdlib) record/replay tool for HTTP APIs,
+so `qa-test-engineer`, `migrate-stack`, and `parity-gate` don't improvise a test runner each
+time:
+```
+python3 .claude/harness/replay_golden.py record --base-url http://localhost:8080 --cases cases.json --out golden.json
+python3 .claude/harness/replay_golden.py replay --base-url http://localhost:8081 --golden golden.json
+```
+Write the cases (method, path, headers, body) once — see `cases.example.json`. Replay compares
+status, chosen headers, and the body; JSON is compared as parsed values after dropping
+volatile `json_paths` (timestamps, generated ids). A case marked `intended_difference` reports
+INTENDED instead of failing. Exit 0 = all match, 1 = divergence, 2 = unreachable or bad file.
+
+## Git hooks (`githooks/` → `<project>/.githooks/`)
+The one piece of enforcement that works whichever tool made the change — Cursor, Copilot,
+Codex, or a terminal — because git runs it:
+- **pre-commit** refuses secret files (`.env*` except `.env.example`, keys, `secrets/`),
+  edits/deletes/renames of an existing migration (new migrations are fine), and staged
+  private keys or AWS access key ids.
+- **pre-push** refuses a push that would rewrite the remote's history (a force-push).
+
+`setup-project.sh --git-hooks` turns them on by setting `core.hooksPath` — only if the project
+doesn't already use one (e.g. Husky or Lefthook); otherwise call the two scripts from your
+existing hook setup. Bypass deliberately with `--no-verify`.
 
 ## Long-running migrations & upgrades — state that survives compaction
 A Java→Node port or a Node 18→22 upgrade across many modules spans days and many context
