@@ -1,0 +1,13 @@
+{
+  "name": "sdlc-agents",
+  "owner": {
+    "name": "Harish Soni Swarnkar"
+  },
+  "plugins": [
+    {
+      "name": "sdlc-agents",
+      "source": "./",
+      "description": "A full SDLC agent crew for Claude Code — 29 agents, 6 review gates, enforcing hooks."
+    }
+  ]
+}
